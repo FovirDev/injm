@@ -8,7 +8,6 @@
 
   outputs =
     {
-      self,
       nixpkgs,
       flake-utils,
       ...
@@ -46,9 +45,6 @@
             rust-analyzer
             rustc
             rustfmt
-          ];
-          packages = [
-            self.packages.${system}.default
           ];
         };
       }
