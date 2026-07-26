@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn pattern_set_empty() {
-        let result = pattern_set(&[], false).unwrap();
+        let result = pattern_set(&[], &[]).unwrap();
         assert!(result.is_empty());
     }
 
@@ -91,7 +91,7 @@ mod tests {
         let path = dir.path().join("a.rs");
         std::fs::write(&path, "fn main() {}").unwrap();
 
-        let result = pattern_set(&[path.to_string_lossy().to_string()], false).unwrap();
+        let result = pattern_set(&[path.to_string_lossy().to_string()], &[]).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains(&path));
     }
@@ -109,7 +109,7 @@ mod tests {
                 a.to_string_lossy().to_string(),
                 b.to_string_lossy().to_string(),
             ],
-            false,
+            &[],
         )
         .unwrap();
         assert_eq!(result.len(), 2);
@@ -123,7 +123,7 @@ mod tests {
         std::fs::write(dir.path().join("c.txt"), "").unwrap();
 
         let glob = dir.path().join("*.rs").to_string_lossy().to_string();
-        let result = pattern_set(&[glob], false).unwrap();
+        let result = pattern_set(&[glob], &[]).unwrap();
         assert_eq!(result.len(), 2);
     }
 
@@ -134,7 +134,7 @@ mod tests {
         std::fs::write(dir.path().join("root.rs"), "").unwrap();
         std::fs::write(dir.path().join("sub/nested.rs"), "").unwrap();
 
-        let result = pattern_set(&[dir.path().to_string_lossy().to_string()], false).unwrap();
+        let result = pattern_set(&[dir.path().to_string_lossy().to_string()], &[]).unwrap();
         assert_eq!(result.len(), 2);
     }
 
@@ -144,7 +144,7 @@ mod tests {
         std::fs::write(dir.path().join("f.rs"), "").unwrap();
 
         let path_str = format!("{}/", dir.path().display());
-        let result = pattern_set(&[path_str], false).unwrap();
+        let result = pattern_set(&[path_str], &[]).unwrap();
         assert_eq!(result.len(), 1);
     }
 
@@ -156,20 +156,8 @@ mod tests {
             .join("*.nonexistent")
             .to_string_lossy()
             .to_string();
-        let err = pattern_set(std::slice::from_ref(&pattern), false).unwrap_err();
+        let err = pattern_set(std::slice::from_ref(&pattern), &[]).unwrap_err();
         assert!(matches!(&err, ParserError::NoPatternMatch { pattern: p } if *p == pattern));
-    }
-
-    #[test]
-    fn pattern_set_no_match_ignored() {
-        let dir = tempfile::tempdir().unwrap();
-        let pattern = dir
-            .path()
-            .join("*.nonexistent")
-            .to_string_lossy()
-            .to_string();
-        let result = pattern_set(&[pattern], true).unwrap();
-        assert!(result.is_empty());
     }
 
     #[test]
@@ -179,7 +167,7 @@ mod tests {
         std::fs::write(&path, "").unwrap();
 
         let ps = path.to_string_lossy().to_string();
-        let result = pattern_set(&[ps.clone(), ps], false).unwrap();
+        let result = pattern_set(&[ps.clone(), ps], &[]).unwrap();
         assert_eq!(result.len(), 1);
     }
 
@@ -191,7 +179,7 @@ mod tests {
         std::fs::write(dir.path().join("subdir/g.rs"), "").unwrap();
 
         let glob = dir.path().join("**/*").to_string_lossy().to_string();
-        let result = pattern_set(&[glob], false).unwrap();
+        let result = pattern_set(&[glob], &[]).unwrap();
         assert_eq!(result.len(), 2);
         assert!(result.iter().all(|p| p.is_file()));
     }
@@ -205,8 +193,71 @@ mod tests {
 
         let p1 = dir.path().join("a.rs").to_string_lossy().to_string();
         let p2 = dir.path().join("src").to_string_lossy().to_string();
-        let result = pattern_set(&[p1, p2], false).unwrap();
+        let result = pattern_set(&[p1, p2], &[]).unwrap();
         assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn pattern_set_exclude_matches_by_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let kept = dir.path().join("keep.rs");
+        let skipped = dir.path().join("skip.rs");
+        std::fs::write(&kept, "").unwrap();
+        std::fs::write(&skipped, "").unwrap();
+
+        // exclude pattern checks full path via glob::Pattern::matches_path
+        let exclude_glob = dir.path().join("skip.rs").to_string_lossy().to_string();
+        let include_glob = dir.path().join("*.rs").to_string_lossy().to_string();
+        let result = pattern_set(&[include_glob], &[exclude_glob]).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result.contains(&kept));
+    }
+
+    #[test]
+    fn pattern_set_exclude_with_wildcard() {
+        let dir = tempfile::tempdir().unwrap();
+        let kept = dir.path().join("keep.md");
+        let skipped = dir.path().join("skip.rs");
+        std::fs::write(&kept, "").unwrap();
+        std::fs::write(&skipped, "").unwrap();
+
+        let exclude_glob = dir.path().join("*.rs").to_string_lossy().to_string();
+        let include_glob = dir.path().join("*.*").to_string_lossy().to_string();
+        let result = pattern_set(&[include_glob], &[exclude_glob]).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result.contains(&kept));
+    }
+
+    #[test]
+    fn pattern_set_exclude_no_match_is_not_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let f = dir.path().join("f.rs");
+        std::fs::write(&f, "").unwrap();
+
+        let result = pattern_set(
+            &[f.to_string_lossy().to_string()],
+            &["*.nonexistent".to_string()],
+        )
+        .unwrap();
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn pattern_set_exclude_multiple_patterns() {
+        let dir = tempfile::tempdir().unwrap();
+        let keep_a = dir.path().join("a.rs");
+        let skip_b = dir.path().join("b.rs");
+        let skip_c = dir.path().join("c.rs");
+        std::fs::write(&keep_a, "").unwrap();
+        std::fs::write(&skip_b, "").unwrap();
+        std::fs::write(&skip_c, "").unwrap();
+
+        let include = dir.path().join("*.rs").to_string_lossy().to_string();
+        let x1 = dir.path().join("b.rs").to_string_lossy().to_string();
+        let x2 = dir.path().join("c.rs").to_string_lossy().to_string();
+        let result = pattern_set(&[include], &[x1, x2]).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result.contains(&keep_a));
     }
 
     #[test]
