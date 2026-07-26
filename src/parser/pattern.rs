@@ -38,6 +38,7 @@ fn parse_file(path: &Path) -> Result<ParsedFile> {
 
 fn pattern_set(patterns: &[String]) -> Result<HashSet<PathBuf>> {
     let mut result: HashSet<PathBuf> = HashSet::new();
+    let mut no_pattern_match;
 
     for pattern in patterns {
         let pattern = if std::path::Path::new(pattern).is_dir() {
@@ -46,7 +47,9 @@ fn pattern_set(patterns: &[String]) -> Result<HashSet<PathBuf>> {
             pattern.to_string()
         };
 
+        no_pattern_match = true;
         for entry in glob::glob(&pattern)? {
+            no_pattern_match = false;
             let path = entry?;
             if path.is_dir() {
                 continue;
@@ -54,7 +57,7 @@ fn pattern_set(patterns: &[String]) -> Result<HashSet<PathBuf>> {
             result.insert(path);
         }
 
-        if result.is_empty() {
+        if no_pattern_match {
             return Err(ParserError::NoPatternMatch { pattern });
         }
     }
