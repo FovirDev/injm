@@ -4,12 +4,21 @@ use crate::{
     types::ParsedFile,
     validator::validate_file,
 };
-use std::{fs, path::Path};
+use std::{
+    collections::HashSet,
+    fs,
+    path::{Path, PathBuf},
+};
 
-pub fn parse_patterns(patterns: &[String]) -> Result<Vec<ParsedFile>> {
-    let mut files = Vec::new();
-    for pattern in patterns {
-        files.extend(parse_pattern(pattern)?);
+pub fn parse_patterns(includes: &[String], excludes: &[String]) -> Result<Vec<ParsedFile>> {
+    let mut files: Vec<ParsedFile> = Vec::new();
+    let mut includes = pattern_set(includes)?;
+    let exclude_files = pattern_set(excludes)?;
+
+    includes.retain(|path| !exclude_files.contains(path));
+
+    for path in includes {
+        files.push(parse_file(&path)?);
     }
 
     Ok(files)
