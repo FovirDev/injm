@@ -19,6 +19,7 @@ A CLI tool that injects content into marked regions in source files.
   - [Dry Run](#dry-run)
   - [Check](#check)
 - [Supported Languages](#supported-languages)
+- [Contributing](#contributing)
 - [Roadmap](#roadmap)
 - [License](#license)
 - [Acknowledgement](#acknowledgement)
@@ -262,6 +263,10 @@ Supports any language recognized by [tree-sitter-language-pack](https://github.c
 - JavaScript, TypeScript
 - Go, Java
 - And [300+ more](https://github.com/kreuzberg-dev/tree-sitter-language-pack)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Roadmap
 
