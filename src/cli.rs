@@ -20,7 +20,7 @@ pub struct Cli {
 
 #[derive(Args)]
 pub struct GlobalArgs {
-    #[arg(short, long, global = true, default_value = "injm.toml")]
+    #[arg(short, long, global = true)]
     pub config: Option<PathBuf>,
 }
 
