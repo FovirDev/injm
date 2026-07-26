@@ -27,30 +27,27 @@ fn parse_file(path: &Path) -> Result<ParsedFile> {
     })
 }
 
-fn parse_pattern(pattern: &str) -> Result<Vec<ParsedFile>> {
-    let mut result: Vec<ParsedFile> = Vec::new();
+fn pattern_set(patterns: &[String]) -> Result<HashSet<PathBuf>> {
+    let mut result: HashSet<PathBuf> = HashSet::new();
 
-    // If the pattern is a directory, then parse it recursively.
-    let pattern = if std::path::Path::new(pattern).is_dir() {
-        format!("{}/**/*", pattern.trim_end_matches('/'))
-    } else {
-        pattern.to_string()
-    };
+    for pattern in patterns {
+        let pattern = if std::path::Path::new(pattern).is_dir() {
+            format!("{}/**/*", pattern.trim_end_matches('/'))
+        } else {
+            pattern.to_string()
+        };
 
-    for entry in glob::glob(&pattern)? {
-        let path = entry?;
-
-        // Ignore directories.
-        if path.is_dir() {
-            continue;
+        for entry in glob::glob(&pattern)? {
+            let path = entry?;
+            if path.is_dir() {
+                continue;
+            }
+            result.insert(path);
         }
 
-        let parsed = parse_file(&path)?;
-        result.push(parsed);
-    }
-
-    if result.is_empty() {
-        return Err(ParserError::NoPatternMatch { pattern });
+        if result.is_empty() {
+            return Err(ParserError::NoPatternMatch { pattern });
+        }
     }
 
     Ok(result)
