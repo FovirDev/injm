@@ -1,6 +1,6 @@
 use crate::{
     checker::check_sync,
-    cli::CheckArgs,
+    cli::{CheckArgs, GlobalArgs},
     output::print_block_diff,
     parser::parse_patterns,
     types::{BlockRole, MarkerBlock},
@@ -8,7 +8,7 @@ use crate::{
 };
 use anyhow::{Result, bail};
 
-pub fn run(args: CheckArgs) -> Result<()> {
+pub fn run(args: CheckArgs, _global_args: GlobalArgs) -> Result<()> {
     let pattern = if args.files.is_empty() {
         vec![".".to_string()]
     } else {

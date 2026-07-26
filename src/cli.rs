@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
 
 use crate::output::OutputFormat;
@@ -10,7 +12,16 @@ use crate::output::OutputFormat;
 )]
 pub struct Cli {
     #[command(subcommand)]
-    pub command: Commands,
+    pub command: Option<Commands>,
+
+    #[command(flatten)]
+    pub global_args: GlobalArgs,
+}
+
+#[derive(Args)]
+pub struct GlobalArgs {
+    #[arg(short, long, global = true, default_value = "injm.toml")]
+    pub config: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]

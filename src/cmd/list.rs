@@ -1,4 +1,4 @@
-use crate::cli::ListArgs;
+use crate::cli::{GlobalArgs, ListArgs};
 use crate::output::print;
 use crate::parser::parse_patterns;
 use crate::types::BlockRole;
@@ -38,7 +38,7 @@ impl fmt::Display for MarkerType {
     }
 }
 
-pub fn run(args: ListArgs) -> Result<()> {
+pub fn run(args: ListArgs, _global_args: GlobalArgs) -> Result<()> {
     // If the input is empty, then fallback to current directory (`.`)
     let input: Vec<String> = if args.input.is_empty() {
         vec![".".to_string()]

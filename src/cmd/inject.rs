@@ -2,14 +2,14 @@ use anyhow::Result;
 use std::fs;
 use std::io::{self, Read};
 
-use crate::cli::InjectArgs;
+use crate::cli::{GlobalArgs, InjectArgs};
 use crate::injector::inject;
 use crate::output::print_diff;
 use crate::parser::parse_patterns;
 use crate::types::{BlockRole, MarkerBlock, SourceSpan};
 use crate::validator::{validate_duplicated_input_ids, validate_missing_ids};
 
-pub fn run(args: InjectArgs) -> Result<()> {
+pub fn run(args: InjectArgs, _global_args: GlobalArgs) -> Result<()> {
     let output_files = parse_patterns(&args.output)?;
 
     let input_blocks: Vec<MarkerBlock> = if args.input.is_empty() {
