@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct MarkerBlock {
     pub span: SourceSpan,
     pub role: BlockRole,
@@ -12,11 +13,13 @@ pub struct SourceSpan {
     pub end_marker: usize,
 }
 
+#[derive(Debug)]
 pub enum BlockRole {
     Output { id: Option<String> },
     Input { ids: Vec<String> },
 }
 
+#[derive(Debug)]
 pub struct ParsedFile {
     pub content: String,
     pub blocks: Vec<MarkerBlock>,
