@@ -1,3 +1,5 @@
+use glob::Pattern;
+
 use super::{ParserError, Result};
 use crate::{
     parser::{detector::detect, marker::extract_marker_blocks},
@@ -12,10 +14,7 @@ use std::{
 
 pub fn parse_patterns(includes: &[String], excludes: &[String]) -> Result<Vec<ParsedFile>> {
     let mut files: Vec<ParsedFile> = Vec::new();
-    let mut includes = pattern_set(includes, false)?;
-    let exclude_files = pattern_set(excludes, true)?;
-
-    includes.retain(|path| !exclude_files.contains(path));
+    let includes = pattern_set(includes, excludes)?;
 
     for path in includes {
         files.push(parse_file(&path)?);
@@ -36,9 +35,13 @@ fn parse_file(path: &Path) -> Result<ParsedFile> {
     })
 }
 
-fn pattern_set(patterns: &[String], ignore_no_match_error: bool) -> Result<HashSet<PathBuf>> {
+fn pattern_set(patterns: &[String], excludes: &[String]) -> Result<HashSet<PathBuf>> {
     let mut result: HashSet<PathBuf> = HashSet::new();
     let mut no_pattern_match;
+    let exclude_patterns: Vec<Pattern> = excludes
+        .iter()
+        .map(|e| Pattern::new(e))
+        .collect::<std::result::Result<Vec<_>, _>>()?;
 
     for pattern in patterns {
         let pattern = if std::path::Path::new(pattern).is_dir() {
@@ -48,16 +51,23 @@ fn pattern_set(patterns: &[String], ignore_no_match_error: bool) -> Result<HashS
         };
 
         no_pattern_match = true;
-        for entry in glob::glob(&pattern)? {
+        'outer: for entry in glob::glob(&pattern)? {
             no_pattern_match = false;
             let path = entry?;
             if path.is_dir() {
                 continue;
             }
+
+            for exclude in &exclude_patterns {
+                if exclude.matches_path(&path) {
+                    continue 'outer;
+                }
+            }
+
             result.insert(path);
         }
 
-        if no_pattern_match && !ignore_no_match_error {
+        if no_pattern_match {
             return Err(ParserError::NoPatternMatch { pattern });
         }
     }
