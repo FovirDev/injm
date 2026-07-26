@@ -12,14 +12,17 @@ use crate::validator::{validate_duplicated_input_ids, validate_missing_ids};
 
 pub fn run(args: InjectArgs, global_args: GlobalArgs) -> Result<()> {
     let cfg = load_config(global_args.config)?;
+
+    let excludes: Vec<String> = cfg.exclude.into_iter().chain(global_args.exclude).collect();
+
     let output_patterns: Vec<String> = args.output.into_iter().chain(cfg.output).collect();
-    let output_files = parse_patterns(&output_patterns, &cfg.exclude)?;
+    let output_files = parse_patterns(&output_patterns, &excludes)?;
 
     let input_blocks: Vec<MarkerBlock> = if args.input.is_empty() {
         stdin_blocks(args.id)?
     } else {
         let input_patterns: Vec<String> = args.input.into_iter().chain(cfg.input).collect();
-        let input_files = parse_patterns(&input_patterns, &cfg.exclude)?;
+        let input_files = parse_patterns(&input_patterns, &excludes)?;
         validate_missing_ids(&output_files, &input_files)?;
         input_files
             .into_iter()

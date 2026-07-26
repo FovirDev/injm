@@ -25,7 +25,9 @@ pub fn run(args: CheckArgs, global_args: GlobalArgs) -> Result<()> {
         merged
     };
 
-    let files = parse_patterns(&includes, &cfg.exclude)?;
+    let excludes: Vec<String> = cfg.exclude.into_iter().chain(global_args.exclude).collect();
+
+    let files = parse_patterns(&includes, &excludes)?;
 
     validate_missing_ids(&files, &files)?;
 

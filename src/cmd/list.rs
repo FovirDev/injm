@@ -56,10 +56,12 @@ pub fn run(args: ListArgs, global_args: GlobalArgs) -> Result<()> {
         merged
     };
 
+    let excludes: Vec<String> = cfg.exclude.into_iter().chain(global_args.exclude).collect();
+
     // Get all input and output blocks.
     let mut rows = Vec::new();
 
-    let files = parse_patterns(&input, &cfg.exclude)?;
+    let files = parse_patterns(&input, &excludes)?;
     for file in &files {
         for block in &file.blocks {
             match &block.role {

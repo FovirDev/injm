@@ -22,6 +22,9 @@ pub struct Cli {
 pub struct GlobalArgs {
     #[arg(short, long, global = true)]
     pub config: Option<PathBuf>,
+
+    #[arg(short, long, global = true)]
+    pub exclude: Vec<String>,
 }
 
 #[derive(Subcommand)]
