@@ -125,19 +125,13 @@ Improve project configuration.
 
 - [ ] Support `injm.toml`
 - [ ] Configure include/exclude patterns
-- [ ] Configure marker or marker prefix
-- [ ] Configure default source/output mappings
 - [ ] Integrate with `.gitignore`
 
 Example:
 
 ```toml
-[input]
-path = "examples"
-
-[output]
-path = "docs"
-
+input = [ "examples/*.md" ]
+output = [ "docs/**" ]
 exclude = [
     "target/**",
     "vendor/**"
