@@ -1,6 +1,7 @@
 use crate::{
     checker::check_sync,
     cli::{CheckArgs, GlobalArgs},
+    config::load_config,
     output::print_block_diff,
     parser::parse_patterns,
     types::{BlockRole, MarkerBlock},
@@ -8,14 +9,23 @@ use crate::{
 };
 use anyhow::{Result, bail};
 
-pub fn run(args: CheckArgs, _global_args: GlobalArgs) -> Result<()> {
-    let pattern = if args.files.is_empty() {
-        vec![".".to_string()]
-    } else {
-        args.files
+pub fn run(args: CheckArgs, global_args: GlobalArgs) -> Result<()> {
+    let cfg = load_config(global_args.config)?;
+
+    let includes: Vec<String> = {
+        let mut merged: Vec<String> = args
+            .files
+            .into_iter()
+            .chain(cfg.input)
+            .chain(cfg.output)
+            .collect();
+        if merged.is_empty() {
+            merged.push(".".to_string());
+        }
+        merged
     };
 
-    let files = parse_patterns(&pattern)?;
+    let files = parse_patterns(&includes, &cfg.exclude)?;
 
     validate_missing_ids(&files, &files)?;
 

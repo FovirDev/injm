@@ -1,4 +1,5 @@
 use crate::cli::{GlobalArgs, ListArgs};
+use crate::config::load_config;
 use crate::output::print;
 use crate::parser::parse_patterns;
 use crate::types::BlockRole;
@@ -38,18 +39,27 @@ impl fmt::Display for MarkerType {
     }
 }
 
-pub fn run(args: ListArgs, _global_args: GlobalArgs) -> Result<()> {
+pub fn run(args: ListArgs, global_args: GlobalArgs) -> Result<()> {
+    let cfg = load_config(global_args.config)?;
+
     // If the input is empty, then fallback to current directory (`.`)
-    let input: Vec<String> = if args.input.is_empty() {
-        vec![".".to_string()]
-    } else {
-        args.input
+    let input: Vec<String> = {
+        let mut merged: Vec<String> = args
+            .input
+            .into_iter()
+            .chain(cfg.input)
+            .chain(cfg.output)
+            .collect();
+        if merged.is_empty() {
+            merged.push(".".to_string());
+        }
+        merged
     };
 
     // Get all input and output blocks.
     let mut rows = Vec::new();
 
-    let files = parse_patterns(&input)?;
+    let files = parse_patterns(&input, &cfg.exclude)?;
     for file in &files {
         for block in &file.blocks {
             match &block.role {
