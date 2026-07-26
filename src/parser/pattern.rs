@@ -12,8 +12,8 @@ use std::{
 
 pub fn parse_patterns(includes: &[String], excludes: &[String]) -> Result<Vec<ParsedFile>> {
     let mut files: Vec<ParsedFile> = Vec::new();
-    let mut includes = pattern_set(includes)?;
-    let exclude_files = pattern_set(excludes)?;
+    let mut includes = pattern_set(includes, false)?;
+    let exclude_files = pattern_set(excludes, true)?;
 
     includes.retain(|path| !exclude_files.contains(path));
 
@@ -36,7 +36,7 @@ fn parse_file(path: &Path) -> Result<ParsedFile> {
     })
 }
 
-fn pattern_set(patterns: &[String]) -> Result<HashSet<PathBuf>> {
+fn pattern_set(patterns: &[String], ignore_no_match_error: bool) -> Result<HashSet<PathBuf>> {
     let mut result: HashSet<PathBuf> = HashSet::new();
     let mut no_pattern_match;
 
