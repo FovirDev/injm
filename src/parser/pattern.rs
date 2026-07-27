@@ -3,7 +3,7 @@ use ignore::gitignore::Gitignore;
 
 use super::{ParserError, Result};
 use crate::{
-    parser::{detector::detect, marker::extract_marker_blocks},
+    parser::{PatternParserOption, detector::detect, marker::extract_marker_blocks},
     types::ParsedFile,
     validator::validate_file,
 };
@@ -16,10 +16,10 @@ use std::{
 pub fn parse_patterns(
     includes: &[String],
     excludes: &[String],
-    no_gitignore: bool,
+    opts: &PatternParserOption,
 ) -> Result<Vec<ParsedFile>> {
     let mut files: Vec<ParsedFile> = Vec::new();
-    let includes = pattern_set(includes, excludes, no_gitignore)?;
+    let includes = pattern_set(includes, excludes, opts)?;
 
     for path in includes {
         files.push(parse_file(&path)?);
@@ -43,7 +43,7 @@ fn parse_file(path: &Path) -> Result<ParsedFile> {
 fn pattern_set(
     patterns: &[String],
     excludes: &[String],
-    no_gitignore: bool,
+    opts: &PatternParserOption,
 ) -> Result<HashSet<PathBuf>> {
     let mut result: HashSet<PathBuf> = HashSet::new();
     let mut no_pattern_match;
@@ -52,11 +52,10 @@ fn pattern_set(
         .map(|e| Pattern::new(e))
         .collect::<std::result::Result<Vec<_>, _>>()?;
 
-    let cwd = std::env::current_dir()?;
-    let gitignore = if no_gitignore {
+    let gitignore = if opts.no_gitignore {
         None
     } else {
-        load_gitignore(&cwd)?
+        load_gitignore(&opts.cwd)?
     };
 
     for pattern in patterns {

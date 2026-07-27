@@ -1,7 +1,7 @@
 use crate::cli::{GlobalArgs, ListArgs};
 use crate::config::load_config;
 use crate::output::print;
-use crate::parser::parse_patterns;
+use crate::parser::{PatternParserOption, parse_patterns};
 use crate::types::BlockRole;
 use anyhow::Result;
 use core::fmt;
@@ -61,7 +61,14 @@ pub fn run(args: ListArgs, global_args: GlobalArgs) -> Result<()> {
     // Get all input and output blocks.
     let mut rows = Vec::new();
 
-    let files = parse_patterns(&input, &excludes, global_args.no_gitignore)?;
+    let files = parse_patterns(
+        &input,
+        &excludes,
+        &PatternParserOption {
+            no_gitignore: global_args.no_gitignore,
+            cwd: std::env::current_dir()?,
+        },
+    )?;
     for file in &files {
         for block in &file.blocks {
             match &block.role {

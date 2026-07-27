@@ -3,7 +3,7 @@ use crate::{
     cli::{CheckArgs, GlobalArgs},
     config::load_config,
     output::print_block_diff,
-    parser::parse_patterns,
+    parser::{PatternParserOption, parse_patterns},
     types::{BlockRole, MarkerBlock},
     validator::{validate_duplicated_input_ids, validate_missing_ids},
 };
@@ -27,7 +27,14 @@ pub fn run(args: CheckArgs, global_args: GlobalArgs) -> Result<()> {
 
     let excludes: Vec<String> = cfg.exclude.into_iter().chain(global_args.exclude).collect();
 
-    let files = parse_patterns(&includes, &excludes, global_args.no_gitignore)?;
+    let files = parse_patterns(
+        &includes,
+        &excludes,
+        &PatternParserOption {
+            no_gitignore: global_args.no_gitignore,
+            cwd: std::env::current_dir()?,
+        },
+    )?;
 
     validate_missing_ids(&files, &files)?;
 
