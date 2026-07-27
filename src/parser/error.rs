@@ -41,4 +41,7 @@ pub(crate) enum ParserError {
 
     #[error("no files matched pattern `{pattern}`")]
     NoPatternMatch { pattern: String },
+
+    #[error("create gitignore failed: {err}")]
+    GitIgnoreError { err: ignore::Error },
 }

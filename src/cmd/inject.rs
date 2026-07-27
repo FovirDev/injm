@@ -16,13 +16,13 @@ pub fn run(args: InjectArgs, global_args: GlobalArgs) -> Result<()> {
     let excludes: Vec<String> = cfg.exclude.into_iter().chain(global_args.exclude).collect();
 
     let output_patterns: Vec<String> = args.output.into_iter().chain(cfg.output).collect();
-    let output_files = parse_patterns(&output_patterns, &excludes)?;
+    let output_files = parse_patterns(&output_patterns, &excludes, global_args.no_gitignore)?;
 
     let input_blocks: Vec<MarkerBlock> = if args.input.is_empty() {
         stdin_blocks(args.id)?
     } else {
         let input_patterns: Vec<String> = args.input.into_iter().chain(cfg.input).collect();
-        let input_files = parse_patterns(&input_patterns, &excludes)?;
+        let input_files = parse_patterns(&input_patterns, &excludes, global_args.no_gitignore)?;
         validate_missing_ids(&output_files, &input_files)?;
         input_files
             .into_iter()

@@ -25,6 +25,9 @@ pub struct GlobalArgs {
 
     #[arg(short, long, global = true)]
     pub exclude: Vec<String>,
+
+    #[arg(long, global = true)]
+    pub no_gitignore: bool,
 }
 
 #[derive(Subcommand)]

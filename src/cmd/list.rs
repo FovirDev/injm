@@ -61,7 +61,7 @@ pub fn run(args: ListArgs, global_args: GlobalArgs) -> Result<()> {
     // Get all input and output blocks.
     let mut rows = Vec::new();
 
-    let files = parse_patterns(&input, &excludes)?;
+    let files = parse_patterns(&input, &excludes, global_args.no_gitignore)?;
     for file in &files {
         for block in &file.blocks {
             match &block.role {
