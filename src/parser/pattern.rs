@@ -116,9 +116,17 @@ fn load_gitignore(cwd: &Path) -> Result<Option<Gitignore>> {
 mod tests {
     use super::*;
 
+    fn opts_with_cwd(cwd: &Path) -> PatternParserOption {
+        PatternParserOption {
+            no_gitignore: false,
+            cwd: cwd.to_path_buf(),
+        }
+    }
+
     #[test]
     fn pattern_set_empty() {
-        let result = pattern_set(&[], &[], false).unwrap();
+        let result =
+            pattern_set(&[], &[], &opts_with_cwd(&std::env::current_dir().unwrap())).unwrap();
         assert!(result.is_empty());
     }
 
@@ -128,7 +136,12 @@ mod tests {
         let path = dir.path().join("a.rs");
         std::fs::write(&path, "fn main() {}").unwrap();
 
-        let result = pattern_set(&[path.to_string_lossy().to_string()], &[], false).unwrap();
+        let result = pattern_set(
+            &[path.to_string_lossy().to_string()],
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains(&path));
     }
@@ -147,7 +160,7 @@ mod tests {
                 b.to_string_lossy().to_string(),
             ],
             &[],
-            false,
+            &opts_with_cwd(dir.path()),
         )
         .unwrap();
         assert_eq!(result.len(), 2);
@@ -161,7 +174,7 @@ mod tests {
         std::fs::write(dir.path().join("c.txt"), "").unwrap();
 
         let glob = dir.path().join("*.rs").to_string_lossy().to_string();
-        let result = pattern_set(&[glob], &[], false).unwrap();
+        let result = pattern_set(&[glob], &[], &opts_with_cwd(dir.path())).unwrap();
         assert_eq!(result.len(), 2);
     }
 
@@ -172,7 +185,12 @@ mod tests {
         std::fs::write(dir.path().join("root.rs"), "").unwrap();
         std::fs::write(dir.path().join("sub/nested.rs"), "").unwrap();
 
-        let result = pattern_set(&[dir.path().to_string_lossy().to_string()], &[], false).unwrap();
+        let result = pattern_set(
+            &[dir.path().to_string_lossy().to_string()],
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap();
         assert_eq!(result.len(), 2);
     }
 
@@ -182,7 +200,7 @@ mod tests {
         std::fs::write(dir.path().join("f.rs"), "").unwrap();
 
         let path_str = format!("{}/", dir.path().display());
-        let result = pattern_set(&[path_str], &[], false).unwrap();
+        let result = pattern_set(&[path_str], &[], &opts_with_cwd(dir.path())).unwrap();
         assert_eq!(result.len(), 1);
     }
 
@@ -194,7 +212,12 @@ mod tests {
             .join("*.nonexistent")
             .to_string_lossy()
             .to_string();
-        let err = pattern_set(std::slice::from_ref(&pattern), &[], false).unwrap_err();
+        let err = pattern_set(
+            std::slice::from_ref(&pattern),
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap_err();
         assert!(matches!(&err, ParserError::NoPatternMatch { pattern: p } if *p == pattern));
     }
 
@@ -205,7 +228,7 @@ mod tests {
         std::fs::write(&path, "").unwrap();
 
         let ps = path.to_string_lossy().to_string();
-        let result = pattern_set(&[ps.clone(), ps], &[], false).unwrap();
+        let result = pattern_set(&[ps.clone(), ps], &[], &opts_with_cwd(dir.path())).unwrap();
         assert_eq!(result.len(), 1);
     }
 
@@ -217,7 +240,7 @@ mod tests {
         std::fs::write(dir.path().join("subdir/g.rs"), "").unwrap();
 
         let glob = dir.path().join("**/*").to_string_lossy().to_string();
-        let result = pattern_set(&[glob], &[], false).unwrap();
+        let result = pattern_set(&[glob], &[], &opts_with_cwd(dir.path())).unwrap();
         assert_eq!(result.len(), 2);
         assert!(result.iter().all(|p| p.is_file()));
     }
@@ -231,7 +254,7 @@ mod tests {
 
         let p1 = dir.path().join("a.rs").to_string_lossy().to_string();
         let p2 = dir.path().join("src").to_string_lossy().to_string();
-        let result = pattern_set(&[p1, p2], &[], false).unwrap();
+        let result = pattern_set(&[p1, p2], &[], &opts_with_cwd(dir.path())).unwrap();
         assert_eq!(result.len(), 2);
     }
 
@@ -246,7 +269,8 @@ mod tests {
         // exclude pattern checks full path via glob::Pattern::matches_path
         let exclude_glob = dir.path().join("skip.rs").to_string_lossy().to_string();
         let include_glob = dir.path().join("*.rs").to_string_lossy().to_string();
-        let result = pattern_set(&[include_glob], &[exclude_glob], false).unwrap();
+        let result =
+            pattern_set(&[include_glob], &[exclude_glob], &opts_with_cwd(dir.path())).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains(&kept));
     }
@@ -261,7 +285,8 @@ mod tests {
 
         let exclude_glob = dir.path().join("*.rs").to_string_lossy().to_string();
         let include_glob = dir.path().join("*.*").to_string_lossy().to_string();
-        let result = pattern_set(&[include_glob], &[exclude_glob], false).unwrap();
+        let result =
+            pattern_set(&[include_glob], &[exclude_glob], &opts_with_cwd(dir.path())).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains(&kept));
     }
@@ -275,7 +300,7 @@ mod tests {
         let result = pattern_set(
             &[f.to_string_lossy().to_string()],
             &["*.nonexistent".to_string()],
-            false,
+            &opts_with_cwd(dir.path()),
         )
         .unwrap();
         assert_eq!(result.len(), 1);
@@ -294,7 +319,7 @@ mod tests {
         let include = dir.path().join("*.rs").to_string_lossy().to_string();
         let x1 = dir.path().join("b.rs").to_string_lossy().to_string();
         let x2 = dir.path().join("c.rs").to_string_lossy().to_string();
-        let result = pattern_set(&[include], &[x1, x2], false).unwrap();
+        let result = pattern_set(&[include], &[x1, x2], &opts_with_cwd(dir.path())).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains(&keep_a));
     }
@@ -319,7 +344,12 @@ mod tests {
         let path = dir.path().join("test.rs");
         std::fs::write(&path, "fn main() {}").unwrap();
 
-        let result = parse_patterns(&[path.to_string_lossy().to_string()], &[], false).unwrap();
+        let result = parse_patterns(
+            &[path.to_string_lossy().to_string()],
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap();
         assert_eq!(result.len(), 1);
     }
 
@@ -337,7 +367,7 @@ mod tests {
                 b.to_string_lossy().to_string(),
             ],
             &[],
-            false,
+            &opts_with_cwd(dir.path()),
         )
         .unwrap();
         assert_eq!(result.len(), 2);
@@ -357,7 +387,7 @@ mod tests {
                 b.to_string_lossy().to_string(),
             ],
             &[b.to_string_lossy().to_string()],
-            false,
+            &opts_with_cwd(dir.path()),
         )
         .unwrap();
         assert_eq!(result.len(), 1);
@@ -371,7 +401,12 @@ mod tests {
         std::fs::write(&path, "fn f() {}").unwrap();
 
         let ps = path.to_string_lossy().to_string();
-        let result = parse_patterns(std::slice::from_ref(&ps.clone()), &[ps], false).unwrap();
+        let result = parse_patterns(
+            std::slice::from_ref(&ps.clone()),
+            &[ps],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap();
         assert!(result.is_empty());
     }
 
@@ -389,7 +424,7 @@ mod tests {
                 b.to_string_lossy().to_string(),
             ],
             &[dir.path().join("*.rs").to_string_lossy().to_string()],
-            false,
+            &opts_with_cwd(dir.path()),
         )
         .unwrap();
         assert!(result.is_empty());
@@ -403,7 +438,7 @@ mod tests {
             .join("*.nonexistent")
             .to_string_lossy()
             .to_string();
-        let err = parse_patterns(&[pattern], &[], false).unwrap_err();
+        let err = parse_patterns(&[pattern], &[], &opts_with_cwd(dir.path())).unwrap_err();
         assert!(matches!(&err, ParserError::NoPatternMatch { .. }));
     }
 
@@ -419,8 +454,12 @@ mod tests {
             .to_string_lossy()
             .to_string();
         // exclude with no match is not an error
-        let result =
-            parse_patterns(&[f.to_string_lossy().to_string()], &[bad_exclude], false).unwrap();
+        let result = parse_patterns(
+            &[f.to_string_lossy().to_string()],
+            &[bad_exclude],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap();
         assert_eq!(result.len(), 1);
     }
 
@@ -438,7 +477,8 @@ mod tests {
             .join("*.also_nonexistent")
             .to_string_lossy()
             .to_string();
-        let err = parse_patterns(&[bad_include], &[bad_exclude], false).unwrap_err();
+        let err =
+            parse_patterns(&[bad_include], &[bad_exclude], &opts_with_cwd(dir.path())).unwrap_err();
         assert!(matches!(&err, ParserError::NoPatternMatch { .. }));
     }
 
@@ -446,7 +486,12 @@ mod tests {
     fn parse_patterns_file_not_found() {
         let dir = tempfile::tempdir().unwrap();
         let missing = dir.path().join("missing.rs");
-        let err = parse_patterns(&[missing.to_string_lossy().to_string()], &[], false).unwrap_err();
+        let err = parse_patterns(
+            &[missing.to_string_lossy().to_string()],
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap_err();
         // glob matches nothing → NoPatternMatch before we reach validate_file
         assert!(matches!(&err, ParserError::NoPatternMatch { .. }));
     }
@@ -457,7 +502,12 @@ mod tests {
         let bin = dir.path().join("bin.rs");
         std::fs::write(&bin, [0x00, 0x01, 0x02]).unwrap();
 
-        let err = parse_patterns(&[bin.to_string_lossy().to_string()], &[], false).unwrap_err();
+        let err = parse_patterns(
+            &[bin.to_string_lossy().to_string()],
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap_err();
         assert!(matches!(&err, ParserError::Checker(_)));
     }
 
@@ -467,7 +517,12 @@ mod tests {
         let f = dir.path().join("bad.rs");
         std::fs::write(&f, "// injm end\n").unwrap();
 
-        let err = parse_patterns(&[f.to_string_lossy().to_string()], &[], false).unwrap_err();
+        let err = parse_patterns(
+            &[f.to_string_lossy().to_string()],
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap_err();
         assert!(matches!(&err, ParserError::EndWithoutBegin { .. }));
     }
 
@@ -477,7 +532,12 @@ mod tests {
         let f = dir.path().join("clean.rs");
         std::fs::write(&f, "fn main() {}\n").unwrap();
 
-        let result = parse_patterns(&[f.to_string_lossy().to_string()], &[], false).unwrap();
+        let result = parse_patterns(
+            &[f.to_string_lossy().to_string()],
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap();
         assert_eq!(result.len(), 1);
         assert!(result[0].blocks.is_empty());
     }
@@ -491,7 +551,7 @@ mod tests {
         let result = parse_patterns(
             &[f.to_string_lossy().to_string()],
             &[], // empty exclude
-            false,
+            &opts_with_cwd(dir.path()),
         )
         .unwrap();
         assert_eq!(result.len(), 1);
@@ -506,7 +566,7 @@ mod tests {
         let result = parse_patterns(
             &[dir.path().join("*.rs").to_string_lossy().to_string()],
             &[],
-            false,
+            &opts_with_cwd(dir.path()),
         )
         .unwrap();
         assert_eq!(result.len(), 2);
@@ -519,8 +579,12 @@ mod tests {
         std::fs::write(dir.path().join("a.rs"), "fn a() {}").unwrap();
         std::fs::write(dir.path().join("nested/b.rs"), "fn b() {}").unwrap();
 
-        let result =
-            parse_patterns(&[dir.path().to_string_lossy().to_string()], &[], false).unwrap();
+        let result = parse_patterns(
+            &[dir.path().to_string_lossy().to_string()],
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap();
         assert_eq!(result.len(), 2);
     }
 
@@ -530,7 +594,12 @@ mod tests {
         let path = dir.path().join("f.rs");
         std::fs::write(&path, "fn f() {}\n").unwrap();
 
-        let result = parse_patterns(&[path.to_string_lossy().to_string()], &[], false).unwrap();
+        let result = parse_patterns(
+            &[path.to_string_lossy().to_string()],
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap();
         assert_eq!(result[0].path, path);
         assert_eq!(result[0].content, "fn f() {}\n");
     }
@@ -541,7 +610,12 @@ mod tests {
         let path = dir.path().join("f.rs");
         std::fs::write(&path, "// injm begin <x\ncontent\n// injm end\n").unwrap();
 
-        let result = parse_patterns(&[path.to_string_lossy().to_string()], &[], false).unwrap();
+        let result = parse_patterns(
+            &[path.to_string_lossy().to_string()],
+            &[],
+            &opts_with_cwd(dir.path()),
+        )
+        .unwrap();
         assert_eq!(result[0].blocks.len(), 1);
     }
 }
