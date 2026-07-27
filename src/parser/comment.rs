@@ -241,6 +241,119 @@ codeblock-->
     }
 
     #[test]
+    fn test_single_line_markdown_comment() {
+        let content = r"
+# Title
+
+<!-- injm begin -->
+
+footer
+";
+        let comments = extract_comments(content, "markdown").unwrap();
+        assert_eq!(comments.len(), 1);
+        assert_eq!(comments[0].text, "injm begin");
+        assert!(!comments[0].text.contains("<!--"));
+        assert!(!comments[0].text.contains("-->"));
+    }
+
+    #[test]
+    fn test_mutiple_line_markdown_comment_extracted() {
+        let content = r#"
+# Title
+
+<!--
+  multi
+  line
+-->
+
+content
+"#;
+        let comments = extract_comments(content, "markdown").unwrap();
+        assert_eq!(comments.len(), 1);
+        assert!(comments[0].text.contains("multi\n  line"));
+        assert!(!comments[0].text.contains("<!--"));
+        assert!(!comments[0].text.contains("-->"));
+    }
+
+    #[test]
+    fn test_multiple_separate_markdown_comments() {
+        let content = r"
+# Title
+
+<!-- first comment -->
+
+some text
+
+<!-- second comment -->
+";
+        let comments = extract_comments(content, "markdown").unwrap();
+        assert_eq!(comments.len(), 2);
+        assert!(comments.iter().any(|c| c.text == "first comment"));
+        assert!(comments.iter().any(|c| c.text == "second comment"));
+    }
+
+    #[test]
+    fn test_non_comment_html_not_extracted() {
+        let content = r"
+<div>not a comment</div>
+
+<p>paragraph</p>
+";
+        let comments = extract_comments(content, "markdown").unwrap();
+        assert_eq!(comments.len(), 0);
+    }
+
+    #[test]
+    fn test_markdown_comment_inside_code_block_not_extracted() {
+        let content = r"
+# Title
+
+```
+<!-- inside code block -->
+```
+
+<!-- real comment -->
+";
+        let comments = extract_comments(content, "markdown").unwrap();
+        assert_eq!(comments.len(), 1);
+        assert!(comments[0].text.contains("real comment"));
+    }
+
+    #[test]
+    fn test_empty_markdown_comment_not_extracted() {
+        let content = r"
+text
+
+<!---->
+";
+        let comments = extract_comments(content, "markdown").unwrap();
+        assert_eq!(comments.len(), 0);
+    }
+
+    #[test]
+    fn test_whitespace_only_markdown_comment_not_extracted() {
+        let content = r"
+text
+
+<!--   -->
+";
+        let comments = extract_comments(content, "markdown").unwrap();
+        assert_eq!(comments.len(), 0);
+    }
+
+    #[test]
+    fn test_markdown_comment_line_numbers() {
+        let content = r"line0
+line1
+<!-- comment -->
+line3";
+        let comments = extract_comments(content, "markdown").unwrap();
+        assert_eq!(comments.len(), 1);
+        assert_eq!(comments[0].start_line, 2);
+        assert_eq!(comments[0].end_line, 2);
+    }
+
+    #[test]
     fn test_no_comments() {
         let content = r"
 fn main() {
