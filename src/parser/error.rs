@@ -44,4 +44,7 @@ pub(crate) enum ParserError {
 
     #[error("create gitignore failed: {err}")]
     GitIgnoreError { err: ignore::Error },
+
+    #[error("failed to parse: {content}")]
+    ParseFailed { content: String },
 }
