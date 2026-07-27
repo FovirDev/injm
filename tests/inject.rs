@@ -3,7 +3,7 @@ use std::process::Command;
 
 fn injm_bin_inject() -> Command {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_injm"));
-    cmd.arg("inject");
+    cmd.arg("inject").arg("--no-gitignore");
     cmd
 }
 

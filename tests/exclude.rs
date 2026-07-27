@@ -12,7 +12,9 @@ fn write_file(dir: &Path, relative_path: &str, content: &str) {
 }
 
 fn injm() -> assert_cmd::Command {
-    assert_cmd::cargo::cargo_bin_cmd!("injm")
+    let mut cmd = assert_cmd::cargo::cargo_bin_cmd!("injm");
+    cmd.arg("--no-gitignore");
+    cmd
 }
 
 // ----- check with --exclude -----
@@ -264,6 +266,7 @@ fn inject_exclude_skips_output_files() {
 
     let mut cmd = process::Command::new(env!("CARGO_BIN_EXE_injm"));
     cmd.arg("inject")
+        .arg("--no-gitignore")
         .arg("--output")
         .arg(&out_a)
         .arg(&out_b)

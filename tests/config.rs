@@ -17,7 +17,9 @@ fn abs_config(dir: &Path, content: &str) -> String {
 }
 
 fn injm() -> assert_cmd::Command {
-    assert_cmd::cargo::cargo_bin_cmd!("injm")
+    let mut cmd = assert_cmd::cargo::cargo_bin_cmd!("injm");
+    cmd.arg("--no-gitignore");
+    cmd
 }
 
 // ----- inject -----
@@ -206,6 +208,7 @@ fn inject_stdin_with_config_output_merged() {
 
     let mut cmd = process::Command::new(env!("CARGO_BIN_EXE_injm"));
     cmd.arg("inject")
+        .arg("--no-gitignore")
         .arg("--output")
         .arg(&out_a)
         .arg("--config")
@@ -730,6 +733,7 @@ fn inject_config_dry_run_does_not_modify_files() {
 
     let mut cmd = process::Command::new(env!("CARGO_BIN_EXE_injm"));
     cmd.arg("inject")
+        .arg("--no-gitignore")
         .arg("--dry-run")
         .arg("--output")
         .arg(&out_path)

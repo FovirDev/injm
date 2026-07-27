@@ -2,7 +2,7 @@ use std::process::Command;
 
 fn injm_bin_list() -> Command {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_injm"));
-    cmd.arg("list");
+    cmd.arg("list").arg("--no-gitignore");
     cmd
 }
 
