@@ -11,10 +11,14 @@ A CLI tool that injects content into marked regions in source files.
   - [Nix](#nix)
   - [Download Binary](#download-binary)
 - [Usage](#usage)
+  - [Quick Start](#quick-start)
   - [Basic Injection](#basic-injection)
   - [Inject into a Specific Region](#inject-into-a-specific-region)
   - [Sync Between Files](#sync-between-files)
   - [Multiple Files and Globs](#multiple-files-and-globs)
+  - [Excluding Files](#excluding-files)
+  - [`.gitignore` Integration](#gitignore-integration)
+  - [Project Configuration](#project-configuration)
   - [List Markers](#list-markers)
   - [Dry Run](#dry-run)
   - [Check](#check)
@@ -46,7 +50,23 @@ Download the latest binary for your platform from [GitHub Releases](https://gith
 
 ## Usage
 
-`injm` uses subcommands. The main one is `inject`:
+### Quick Start
+
+The simplest way is to create an `injm.toml` in your project root and run `injm` without any subcommand:
+
+```toml
+input = ["src/**/*.rs"]
+output = ["docs/"]
+exclude = ["target/**"]
+```
+
+```bash
+injm
+```
+
+This reads content from `src/**/*.rs`, finds all `<id` markers, and injects them into matching `>id` regions in `docs/`.
+
+You can also use subcommands for one-off operations. The main one is `inject`:
 
 ### Basic Injection
 
@@ -178,6 +198,79 @@ injm inject --input "src/**/*.rs" --output "docs/"
 injm inject --input "mod_a/**/*.rs" "mod_b/**/*.rs" --output dest.rs
 ```
 
+### Excluding Files
+
+Skip files with `--exclude` (or `-e`). Accepts glob patterns matched against
+absolute paths:
+
+```bash
+# Exclude a specific file
+injm inject --input src/ --output dest/ --exclude src/legacy.rs
+
+# Exclude with glob patterns
+injm inject --input src/ --output dest/ --exclude "**/vendor/**" "**/*.generated.rs"
+
+# Multiple flags
+injm inject --input src/ --output dest/ -e "target/**" -e "node_modules/**"
+```
+
+Exclusion applies to both `--input` and `--output` files. The same patterns can also be set in `injm.toml` (see [Project Configuration](#project-configuration)).
+
+### `.gitignore` Integration
+
+By default, `injm` respects `.gitignore` rules — any file matched by `.gitignore` is skipped:
+
+```bash
+# Files in .gitignore are automatically excluded
+injm inject --input src/ --output dest/
+```
+
+To include gitignored files, use `--no-gitignore`:
+
+```bash
+injm inject --input src/ --output dest/ --no-gitignore
+```
+
+### Project Configuration
+
+Create an `injm.toml` in your project root to define input sources, output
+destinations, and exclusion patterns:
+
+```toml
+input = ["examples/*.md"]
+output = ["docs/**"]
+exclude = [
+    "target/**",
+    "vendor/**"
+]
+```
+
+When `injm.toml` is present, you can run `injm` **without any subcommand**:
+
+```bash
+injm
+```
+
+This reads the config, injects content from `input` into matching regions in
+`output`, and writes the result. Equivalent to:
+
+```bash
+injm inject --input "examples/*.md" --output "docs/**" --exclude "target/**" --exclude "vendor/**"
+```
+
+You can also point to a different config file with `--config`:
+
+```bash
+injm --config path/to/injm.toml
+```
+
+Config values are merged with CLI flags — CLI arguments take precedence:
+
+```bash
+# Merges config's output with --exclude from CLI
+injm --config injm.toml --exclude "temp/**"
+```
+
 ### List Markers
 
 Preview all marker regions across files:
@@ -221,6 +314,16 @@ To see a unified diff of what would change instead of the full file, add `--diff
 
 ```bash
 cat src.txt | injm inject --output dest.rs --dry-run --diff
+```
+
+These flags also work with the root command when using `injm.toml`:
+
+```bash
+# Preview all changes from config
+injm --dry-run
+
+# Show unified diff of what would change
+injm --dry-run --diff
 ```
 
 ### Check
@@ -279,6 +382,7 @@ MIT
 ## Acknowledgement
 
 - [clap-rs/clap](https://github.com/clap-rs/clap): A full featured, fast Command Line Argument Parser for Rust.
+- [ignore](https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore): The ignore crate provides a fast recursive directory iterator that respects various filters such as globs, file types and .gitignore files. This crate also provides lower level direct access to gitignore and file type matchers.
 - [rust-lang/glob](https://github.com/rust-lang/glob): Support for matching file paths against Unix shell style patterns.
 - [serde-rs/serde](https://github.com/serde-rs/serde): Serialization framework for Rust.
 - [xberg-io/tree-sitter-language-pack](https://github.com/xberg-io/tree-sitter-language-pack): Comprehensive tree-sitter grammar compilation with polyglot bindings — Rust, Python, Node.js, Go, Java, Ruby, Elixir, PHP, C#, WASM, Dart, Kotlin-Android, Swift, Zig, and CLI. 306+ languages.
