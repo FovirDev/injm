@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
 
 use crate::output::OutputFormat;
@@ -10,7 +12,34 @@ use crate::output::OutputFormat;
 )]
 pub struct Cli {
     #[command(subcommand)]
-    pub command: Commands,
+    pub command: Option<Commands>,
+
+    #[command(flatten)]
+    pub global_args: GlobalArgs,
+
+    #[command(flatten)]
+    pub root_args: RootArgs,
+}
+
+#[derive(Args)]
+pub struct RootArgs {
+    #[arg(long)]
+    pub dry_run: bool,
+
+    #[arg(long)]
+    pub diff: bool,
+}
+
+#[derive(Args)]
+pub struct GlobalArgs {
+    #[arg(short, long, global = true)]
+    pub config: Option<PathBuf>,
+
+    #[arg(short, long, global = true)]
+    pub exclude: Vec<String>,
+
+    #[arg(long, global = true)]
+    pub no_gitignore: bool,
 }
 
 #[derive(Subcommand)]

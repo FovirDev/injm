@@ -128,6 +128,181 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_markdown_markers_extracted() {
+        let content = "\n<!-- injm begin <my_id -->\nhello\n<!-- injm end -->\n";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 1);
+    }
+
+    #[test]
+    fn test_markdown_input_block_id() {
+        let content = "<!-- injm begin <greet -->\nhello\n<!-- injm end -->";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert!(matches!(
+            blocks[0].role,
+            BlockRole::Input { ref ids, .. } if ids == &vec!["greet".to_string()]
+        ));
+    }
+
+    #[test]
+    fn test_markdown_output_block_id() {
+        let content = "<!-- injm begin >greet -->\nworld\n<!-- injm end -->";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert!(matches!(
+            blocks[0].role,
+            BlockRole::Output { id: Some(ref id) } if id == "greet"
+        ));
+    }
+
+    #[test]
+    fn test_markdown_anonymous_block() {
+        let content = "<!-- injm begin -->\ncontent\n<!-- injm end -->";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert!(matches!(blocks[0].role, BlockRole::Output { id: None }));
+    }
+
+    #[test]
+    fn test_markdown_multiple_blocks() {
+        let content = "\
+<!-- injm begin <first -->
+first content
+<!-- injm end -->
+
+<!-- injm begin >second -->
+second content
+<!-- injm end -->";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 2);
+        assert!(matches!(
+            blocks[0].role,
+            BlockRole::Input { ref ids, .. } if ids == &vec!["first".to_string()]
+        ));
+        assert!(matches!(
+            blocks[1].role,
+            BlockRole::Output { id: Some(ref id) } if id == "second"
+        ));
+    }
+
+    #[test]
+    fn test_markdown_input_content() {
+        let content = "\
+<!-- injm begin <hello -->
+println!(\"Hello\")
+<!-- injm end -->";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert!(matches!(
+            blocks[0].role,
+            BlockRole::Input { ref ids, .. } if ids == &vec!["hello".to_string()]
+        ));
+        assert_eq!(blocks[0].content, "println!(\"Hello\")");
+    }
+
+    #[test]
+    fn test_markdown_multiple_lines_input_content() {
+        let content = "\
+<!-- injm begin <hello -->
+line one
+line two
+line three
+<!-- injm end -->";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert!(matches!(
+            blocks[0].role,
+            BlockRole::Input { ref ids, .. } if ids == &vec!["hello".to_string()]
+        ));
+        assert_eq!(blocks[0].content, "line one\nline two\nline three");
+    }
+
+    #[test]
+    fn test_markdown_output_has_no_content() {
+        let content = "\
+<!-- injm begin >greet -->
+some content here
+<!-- injm end -->";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert!(matches!(
+            blocks[0].role,
+            BlockRole::Output { id: Some(ref id) } if id == "greet"
+        ));
+    }
+
+    #[test]
+    fn test_markdown_multiple_input_ids() {
+        let content = "\
+<!-- injm begin <first <second -->
+shared content
+<!-- injm end -->";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert!(matches!(
+            blocks[0].role,
+            BlockRole::Input { ref ids, .. }
+                if ids == &vec!["first".to_string(), "second".to_string()]
+        ));
+    }
+
+    #[test]
+    fn test_markdown_ids_dont_leak() {
+        let content = "\
+<!-- injm begin >first -->
+first content
+<!-- injm end -->
+
+<!-- injm begin -->
+second content
+<!-- injm end -->";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 2);
+        assert!(matches!(
+            blocks[0].role,
+            BlockRole::Output { id: Some(ref id) } if id == "first"
+        ));
+        assert!(matches!(blocks[1].role, BlockRole::Output { id: None }));
+    }
+
+    #[test]
+    fn test_markdown_nested_begin_error() {
+        let content = "\
+<!-- injm begin -->
+<!-- injm begin -->
+<!-- injm end -->";
+        let err = extract_marker_blocks(content, Path::new(""), "markdown").unwrap_err();
+        assert!(matches!(err, ParserError::NestedMarker { .. }));
+    }
+
+    #[test]
+    fn test_markdown_end_without_begin_error() {
+        let content = "<!-- injm end -->";
+        let err = extract_marker_blocks(content, Path::new(""), "markdown").unwrap_err();
+        assert!(matches!(err, ParserError::EndWithoutBegin { .. }));
+    }
+
+    #[test]
+    fn test_markdown_begin_without_end_error() {
+        let content = "<!-- injm begin -->";
+        let err = extract_marker_blocks(content, Path::new(""), "markdown").unwrap_err();
+        assert!(matches!(err, ParserError::BeginWithoutEnd { .. }));
+    }
+
+    #[test]
+    fn test_markdown_non_marker_comments_ignored() {
+        let content = "\
+<!-- some random comment -->
+<!-- injm begin -->
+content
+<!-- injm end -->
+<!-- another random comment -->";
+        let blocks = extract_marker_blocks(content, Path::new(""), "markdown").unwrap();
+        assert_eq!(blocks.len(), 1);
+    }
+
+    #[test]
     fn test_single_block() {
         let content = "\n// injm begin\n\n\n\n// injm end\n";
         let blocks = extract_marker_blocks(content, Path::new(""), "rust").unwrap();

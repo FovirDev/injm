@@ -123,21 +123,16 @@ Perfect for CI.
 
 Improve project configuration.
 
-- [ ] Support `injm.toml`
-- [ ] Configure include/exclude patterns
-- [ ] Configure marker or marker prefix
-- [ ] Configure default source/output mappings
-- [ ] Integrate with `.gitignore`
+- [x] Support `injm.toml`
+- [x] Configure include/exclude patterns
+- [x] Integrate with `.gitignore`
+- [x] Implement `injm` command
 
 Example:
 
 ```toml
-[input]
-path = "examples"
-
-[output]
-path = "docs"
-
+input = ["examples/*.md"]
+output = ["docs/**"]
 exclude = [
     "target/**",
     "vendor/**"

@@ -20,7 +20,9 @@ fn write_file(directory: &Path, relative_path: &str, content: &str) -> PathBuf {
 }
 
 fn injm() -> Command {
-    assert_cmd::cargo::cargo_bin_cmd!("injm")
+    let mut cmd: Command = assert_cmd::cargo::cargo_bin_cmd!("injm");
+    cmd.arg("--no-gitignore");
+    cmd
 }
 
 #[test]
