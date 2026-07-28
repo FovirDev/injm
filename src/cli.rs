@@ -16,6 +16,18 @@ pub struct Cli {
 
     #[command(flatten)]
     pub global_args: GlobalArgs,
+
+    #[command(flatten)]
+    pub root_args: RootArgs,
+}
+
+#[derive(Args)]
+pub struct RootArgs {
+    #[arg(long)]
+    pub dry_run: bool,
+
+    #[arg(long)]
+    pub diff: bool,
 }
 
 #[derive(Args)]

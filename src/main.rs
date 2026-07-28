@@ -18,6 +18,6 @@ fn main() -> anyhow::Result<()> {
         Some(cli::Commands::Inject(args)) => cmd::inject::run(args, global_args),
         Some(cli::Commands::List(args)) => cmd::list::run(args, global_args),
         Some(cli::Commands::Check(args)) => cmd::check::run(args, global_args),
-        None => cmd::root::run(global_args),
+        None => cmd::root::run(cli.root_args, global_args),
     }
 }

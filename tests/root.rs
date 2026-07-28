@@ -480,3 +480,174 @@ output = ["{root}/out.md"]
     let result = fs::read_to_string(temp.path().join("out.md")).unwrap();
     assert!(result.contains("hello markdown"));
 }
+
+#[test]
+fn dry_run_prints_stdout_does_not_modify() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        "// injm begin <msg\n    let x = 1;\n// injm end\n",
+    );
+    write_file(temp.path(), "out.rs", "// injm begin >msg\n// injm end\n");
+    write_file(
+        temp.path(),
+        "injm.toml",
+        &abs_config(
+            temp.path(),
+            r#"input = ["{root}/input.rs"]
+output = ["{root}/out.rs"]
+"#,
+        ),
+    );
+
+    let original = fs::read_to_string(temp.path().join("out.rs")).unwrap();
+
+    injm()
+        .arg("--dry-run")
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("let x = 1;"));
+
+    let after = fs::read_to_string(temp.path().join("out.rs")).unwrap();
+    assert_eq!(original, after);
+}
+
+#[test]
+fn diff_shows_diff_does_not_modify() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        "// injm begin <msg\n    let x = 1;\n// injm end\n",
+    );
+    write_file(temp.path(), "out.rs", "// injm begin >msg\n// injm end\n");
+    write_file(
+        temp.path(),
+        "injm.toml",
+        &abs_config(
+            temp.path(),
+            r#"input = ["{root}/input.rs"]
+output = ["{root}/out.rs"]
+"#,
+        ),
+    );
+
+    let original = fs::read_to_string(temp.path().join("out.rs")).unwrap();
+
+    injm()
+        .arg("--dry-run")
+        .arg("--diff")
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stdout(
+            predicate::str::starts_with("--- ").and(predicate::str::contains("+    let x = 1")),
+        );
+
+    let after = fs::read_to_string(temp.path().join("out.rs")).unwrap();
+    assert_eq!(original, after);
+}
+
+#[test]
+fn dry_run_without_diff_does_not_print_diff_prefix() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        "// injm begin <msg\n    let x = 1;\n// injm end\n",
+    );
+    write_file(temp.path(), "out.rs", "// injm begin >msg\n// injm end\n");
+    write_file(
+        temp.path(),
+        "injm.toml",
+        &abs_config(
+            temp.path(),
+            r#"input = ["{root}/input.rs"]
+output = ["{root}/out.rs"]
+"#,
+        ),
+    );
+
+    injm()
+        .arg("--dry-run")
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::starts_with("// "));
+}
+
+#[test]
+fn dry_run_with_multiple_outputs_shows_path_headers() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        "// injm begin <msg\n    let x = 1;\n// injm end\n",
+    );
+    write_file(temp.path(), "a.rs", "// injm begin >msg\n// injm end\n");
+    write_file(temp.path(), "b.rs", "// injm begin >msg\n// injm end\n");
+    write_file(
+        temp.path(),
+        "injm.toml",
+        &abs_config(
+            temp.path(),
+            r#"input = ["{root}/input.rs"]
+output = ["{root}/a.rs", "{root}/b.rs"]
+"#,
+        ),
+    );
+
+    let out_a = fs::read_to_string(temp.path().join("a.rs")).unwrap();
+    let out_b = fs::read_to_string(temp.path().join("b.rs")).unwrap();
+
+    injm()
+        .arg("--dry-run")
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stdout(
+            predicate::str::contains("==== ")
+                .and(predicate::str::contains("a.rs"))
+                .and(predicate::str::contains("b.rs"))
+                .and(predicate::str::contains("let x = 1")),
+        );
+
+    assert_eq!(fs::read_to_string(temp.path().join("a.rs")).unwrap(), out_a);
+    assert_eq!(fs::read_to_string(temp.path().join("b.rs")).unwrap(), out_b);
+}
+
+#[test]
+fn diff_without_flag_does_not_print_diff() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        "// injm begin <msg\n    let x = 1;\n// injm end\n",
+    );
+    write_file(temp.path(), "out.rs", "// injm begin >msg\n// injm end\n");
+    write_file(
+        temp.path(),
+        "injm.toml",
+        &abs_config(
+            temp.path(),
+            r#"input = ["{root}/input.rs"]
+output = ["{root}/out.rs"]
+"#,
+        ),
+    );
+
+    let result = fs::read_to_string(temp.path().join("out.rs")).unwrap();
+
+    // normal run (no --dry-run, no --diff) writes to file, nothing on stdout
+    injm()
+        .current_dir(temp.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::is_empty());
+
+    let after = fs::read_to_string(temp.path().join("out.rs")).unwrap();
+    assert_ne!(result, after);
+    assert!(after.contains("let x = 1"));
+}
