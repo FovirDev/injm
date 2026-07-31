@@ -510,4 +510,48 @@ content two
         assert!(matches!(blocks[0].role, BlockRole::Input { .. }));
         assert!(matches!(blocks[1].role, BlockRole::Output { .. }));
     }
+
+    #[test]
+    fn test_block_config_defaults() {
+        let content = "// injm begin <hello\ncontent\n// injm end";
+        let blocks = extract_marker_blocks(content, Path::new(""), "rust").unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].config, MarkerConfig::default());
+    }
+
+    #[test]
+    fn test_block_config_extracted_from_begin_marker() {
+        let content = "// injm begin <hello :trim=true :offset=2 :indent=4\ncontent\n// injm end";
+        let blocks = extract_marker_blocks(content, Path::new(""), "rust").unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(
+            blocks[0].config,
+            MarkerConfig {
+                offset: 2,
+                trim: true,
+                indentation: Some(4),
+            }
+        );
+    }
+
+    #[test]
+    fn test_block_config_ignores_end_marker_options() {
+        let content = "// injm begin <hello :offset=1\ncontent\n// injm end :offset=9";
+        let blocks = extract_marker_blocks(content, Path::new(""), "rust").unwrap();
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(
+            blocks[0].config,
+            MarkerConfig {
+                offset: 1,
+                ..MarkerConfig::default()
+            }
+        );
+    }
+
+    #[test]
+    fn test_invalid_option_propagates_error() {
+        let content = "// injm begin <hello :unknown=1\ncontent\n// injm end";
+        let err = extract_marker_blocks(content, Path::new(""), "rust").unwrap_err();
+        assert!(matches!(err, ParserError::InvalidOption { .. }));
+    }
 }
