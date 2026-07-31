@@ -5,6 +5,14 @@ pub struct MarkerBlock {
     pub span: SourceSpan,
     pub role: BlockRole,
     pub content: String,
+    pub config: MarkerConfig,
+}
+
+#[derive(Default, Debug, PartialEq, Eq)]
+pub struct MarkerConfig {
+    pub offset: usize,
+    pub trim: bool,
+    pub indentation: Option<usize>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -2,7 +2,7 @@ use std::path::Path;
 
 use super::comment::extract_comments;
 use super::{ParserError, Result};
-use crate::types::{BlockRole, MarkerBlock, SourceSpan};
+use crate::types::{BlockRole, MarkerBlock, MarkerConfig, SourceSpan};
 
 impl MarkerBlock {
     // input block matches output block.
@@ -73,6 +73,7 @@ pub(crate) fn extract_marker_blocks(
                 span,
                 role,
                 content,
+                config: MarkerConfig::default(),
             });
         }
     }

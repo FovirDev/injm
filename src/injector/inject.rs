@@ -44,13 +44,14 @@ mod tests {
     use std::vec;
 
     use super::*;
-    use crate::types::{BlockRole, MarkerBlock, SourceSpan};
+    use crate::types::{BlockRole, MarkerBlock, MarkerConfig, SourceSpan};
 
     fn make_default_input_blocks(s: &str) -> Vec<MarkerBlock> {
         vec![MarkerBlock {
             span: SourceSpan::new(0, 0),
             content: s.to_string(),
             role: BlockRole::Input { ids: vec![] },
+            config: MarkerConfig::default(),
         }]
     }
 
@@ -61,6 +62,7 @@ mod tests {
             span: SourceSpan::new(1, 3),
             role: BlockRole::Output { id: None },
             content: "".to_string(),
+            config: MarkerConfig::default(),
         }];
         let result = inject(
             content,
@@ -79,6 +81,7 @@ mod tests {
             span: SourceSpan::new(0, 2),
             role: BlockRole::Output { id: None },
             content: "".to_string(),
+            config: MarkerConfig::default(),
         }];
         let result = inject(content, &blocks, &make_default_input_blocks("new")).unwrap();
         assert!(result.contains("// injm begin"));
@@ -92,6 +95,7 @@ mod tests {
             span: SourceSpan::new(0, 2),
             role: BlockRole::Output { id: None },
             content: "".to_string(),
+            config: MarkerConfig::default(),
         }];
         let result = inject(content, &blocks, &make_default_input_blocks("new")).unwrap();
         assert!(result.ends_with('\n'));
@@ -104,6 +108,7 @@ mod tests {
             span: SourceSpan::new(0, 2),
             role: BlockRole::Output { id: None },
             content: "".to_string(),
+            config: MarkerConfig::default(),
         }];
         let result = inject(content, &blocks, &make_default_input_blocks("new")).unwrap();
         assert!(!result.ends_with('\n'));
@@ -118,11 +123,13 @@ mod tests {
                 span: SourceSpan::new(0, 2),
                 role: BlockRole::Output { id: None },
                 content: "".to_string(),
+                config: MarkerConfig::default(),
             },
             MarkerBlock {
                 span: SourceSpan::new(4, 6),
                 role: BlockRole::Output { id: None },
                 content: "".to_string(),
+                config: MarkerConfig::default(),
             },
         ];
         let result = inject(content, &blocks, &make_default_input_blocks("new")).unwrap();
@@ -138,6 +145,7 @@ mod tests {
             span: SourceSpan::new(0, 1),
             role: BlockRole::Output { id: None },
             content: "".to_string(),
+            config: MarkerConfig::default(),
         }];
         let result = inject(content, &blocks, &make_default_input_blocks("new content")).unwrap();
         assert!(result.contains("new content"));
@@ -150,6 +158,7 @@ mod tests {
             span: SourceSpan::new(0, 2),
             role: BlockRole::Output { id: None },
             content: "".to_string(),
+            config: MarkerConfig::default(),
         }];
         let result = inject(
             content,
@@ -177,6 +186,7 @@ old second
                     id: Some("first".to_string()),
                 },
                 content: "".to_string(),
+                config: MarkerConfig::default(),
             },
             MarkerBlock {
                 span: SourceSpan::new(3, 5),
@@ -184,6 +194,7 @@ old second
                     id: Some("second".to_string()),
                 },
                 content: "".to_string(),
+                config: MarkerConfig::default(),
             },
         ];
 
@@ -193,6 +204,7 @@ old second
                 ids: vec!["first".to_string()],
             },
             content: "new content".to_string(),
+            config: MarkerConfig::default(),
         }];
 
         let result = inject(content, &blocks, &input_blocks).unwrap();
@@ -220,6 +232,7 @@ old second
                     id: Some("first".to_string()),
                 },
                 content: "".to_string(),
+                config: MarkerConfig::default(),
             },
             MarkerBlock {
                 span: SourceSpan::new(3, 5),
@@ -227,11 +240,13 @@ old second
                     id: Some("second".to_string()),
                 },
                 content: "".to_string(),
+                config: MarkerConfig::default(),
             },
             MarkerBlock {
                 span: SourceSpan::new(6, 8),
                 role: BlockRole::Output { id: None },
                 content: "".to_string(),
+                config: MarkerConfig::default(),
             },
         ];
         let result = inject(content, &blocks, &make_default_input_blocks("new content")).unwrap();
@@ -260,6 +275,7 @@ old third
                     id: Some("first".to_string()),
                 },
                 content: "".to_string(),
+                config: MarkerConfig::default(),
             },
             MarkerBlock {
                 span: SourceSpan::new(3, 5),
@@ -267,6 +283,7 @@ old third
                     id: Some("second".to_string()),
                 },
                 content: "".to_string(),
+                config: MarkerConfig::default(),
             },
             MarkerBlock {
                 span: SourceSpan::new(6, 8),
@@ -274,6 +291,7 @@ old third
                     id: Some("third".to_string()),
                 },
                 content: "".to_string(),
+                config: MarkerConfig::default(),
             },
         ];
 
@@ -283,6 +301,7 @@ old third
                 ids: vec!["first".to_string(), "third".to_string()],
             },
             content: "new content".to_string(),
+            config: MarkerConfig::default(),
         }];
 
         let result = inject(content, &blocks, &input_blocks).unwrap();
