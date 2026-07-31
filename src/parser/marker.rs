@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use super::comment::extract_comments;
+use super::config::extract_config;
 use super::{ParserError, Result};
 use crate::types::{BlockRole, MarkerBlock, MarkerConfig, SourceSpan};
 
@@ -32,6 +33,7 @@ pub(crate) fn extract_marker_blocks(
     struct OpenBlock {
         begin_line: usize,
         role: BlockRole,
+        config: MarkerConfig,
     }
 
     let mut marker_blocks: Vec<MarkerBlock> = Vec::new();
@@ -50,16 +52,20 @@ pub(crate) fn extract_marker_blocks(
             open = Some(OpenBlock {
                 begin_line: comment.end_line,
                 role: extract_role(&comment.text)?,
+                config: extract_config(&comment.text)?,
             });
             continue;
         }
 
         if comment.text.contains("injm end") {
-            let OpenBlock { begin_line, role } =
-                open.take().ok_or_else(|| ParserError::EndWithoutBegin {
-                    line: comment.start_line,
-                    path: path.to_owned(),
-                })?;
+            let OpenBlock {
+                begin_line,
+                role,
+                config,
+            } = open.take().ok_or_else(|| ParserError::EndWithoutBegin {
+                line: comment.start_line,
+                path: path.to_owned(),
+            })?;
 
             let span = SourceSpan::new(begin_line, comment.start_line);
             let content = lines[span.content_lines()].join("\n");
@@ -73,7 +79,7 @@ pub(crate) fn extract_marker_blocks(
                 span,
                 role,
                 content,
-                config: MarkerConfig::default(),
+                config,
             });
         }
     }

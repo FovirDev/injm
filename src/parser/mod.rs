@@ -1,4 +1,5 @@
 mod comment;
+pub(super) mod config;
 mod detector;
 pub(crate) mod error;
 mod marker;

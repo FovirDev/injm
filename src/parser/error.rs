@@ -21,6 +21,12 @@ pub(crate) enum ParserError {
     #[error(transparent)]
     Pattern(#[from] glob::PatternError),
 
+    #[error(transparent)]
+    ParseIntError(#[from] std::num::ParseIntError),
+
+    #[error(transparent)]
+    ParseBoolError(#[from] std::str::ParseBoolError),
+
     #[error("unsupported file type: {}",path.display())]
     UnsupportedFileType { path: PathBuf },
 
@@ -47,4 +53,16 @@ pub(crate) enum ParserError {
 
     #[error("failed to parse: {content}")]
     ParseFailed { content: String },
+
+    #[error("invalid option format: {opt}, expect `:opts...`")]
+    InvalidOptionNameFormat { opt: String },
+
+    #[error("option name is missing: {opt}")]
+    MissingOptionName { opt: String },
+
+    #[error("invalid integer option format: {opt}, expect `:opts=42`")]
+    InvalidIntOptionFormat { opt: String },
+
+    #[error("invalid option: {opt}")]
+    InvalidOption { opt: String },
 }
