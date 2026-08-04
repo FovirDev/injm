@@ -42,12 +42,43 @@ fn inject_into_a_block(lines: &[String], block: &MarkerBlock, stdin: &str) -> Re
     let before = &lines[before_range];
     let after = &lines[after_range];
 
+    let stdin = if block.config.trim {
+        trim_blank_lines(stdin)
+    } else {
+        stdin
+    };
+
     let mut injected = Vec::with_capacity(before.len() + after.len() + 1);
     injected.extend_from_slice(before);
     injected.push(stdin);
     injected.extend_from_slice(after);
 
     injected
+}
+
+fn trim_blank_lines(content: &str) -> &str {
+    let mut s = content;
+
+    while let Some((line, rest)) = s.split_once('\n') {
+        if !line.trim().is_empty() {
+            break;
+        }
+        s = rest
+    }
+
+    while let Some((rest, line)) = s.rsplit_once('\n') {
+        if !line.trim().is_empty() {
+            break;
+        }
+        s = rest;
+    }
+
+    let trimmed = s.strip_suffix('\r').unwrap_or(s);
+    if trimmed.trim().is_empty() {
+        ""
+    } else {
+        trimmed
+    }
 }
 
 #[cfg(test)]
