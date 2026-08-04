@@ -529,7 +529,7 @@ content two
             MarkerConfig {
                 offset: 2,
                 trim: true,
-                indentation: Some(4),
+                indent: Some(4),
             }
         );
     }

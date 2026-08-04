@@ -16,7 +16,7 @@ fn extract_value(opt: &str, config: &mut MarkerConfig) -> Result<()> {
     match name.as_str() {
         "trim" => config.trim = extract_bool(opt, true)?,
         "offset" => config.offset = extract_int(opt)?,
-        "indent" => config.indentation = Some(extract_int(opt)?),
+        "indent" => config.indent = Some(extract_int(opt)?),
         _ => {
             return Err(ParserError::InvalidOption {
                 opt: opt.to_string(),
@@ -144,7 +144,7 @@ mod tests {
         assert_eq!(
             config,
             MarkerConfig {
-                indentation: Some(4),
+                indent: Some(4),
                 ..default_config()
             }
         );
@@ -158,7 +158,7 @@ mod tests {
             MarkerConfig {
                 offset: 2,
                 trim: true,
-                indentation: Some(4),
+                indent: Some(4),
             }
         );
     }
@@ -170,7 +170,7 @@ mod tests {
             config,
             MarkerConfig {
                 offset: 2,
-                indentation: Some(4),
+                indent: Some(4),
                 ..default_config()
             }
         );

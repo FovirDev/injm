@@ -12,7 +12,7 @@ pub struct MarkerBlock {
 pub struct MarkerConfig {
     pub offset: usize,
     pub trim: bool,
-    pub indentation: Option<usize>,
+    pub indent: Option<usize>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
