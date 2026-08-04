@@ -9,4 +9,7 @@ pub(crate) enum InjectorError {
 
     #[error("invalid range: ({begin}, {end})")]
     InvalidRange { begin: usize, end: usize },
+
+    #[error("line {line_number} mixes tabs and spaces in indentation")]
+    MixedIndentChar { line_number: usize },
 }

@@ -48,12 +48,18 @@ fn inject_into_a_block(lines: &[String], block: &MarkerBlock, stdin: &str) -> Re
         stdin
     };
 
+    let stdin = if let Some(indent) = block.config.indent {
+        align_indent(stdin, indent)?
+    } else {
+        stdin.to_owned()
+    };
+
     let mut injected = Vec::with_capacity(before.len() + after.len() + 1);
     injected.extend_from_slice(before);
     injected.push(stdin);
     injected.extend_from_slice(after);
 
-    injected
+    Ok(injected)
 }
 
 fn trim_blank_lines(content: &str) -> &str {
@@ -79,6 +85,83 @@ fn trim_blank_lines(content: &str) -> &str {
     } else {
         trimmed
     }
+}
+
+fn align_indent(content: &str, target_indent_width: usize) -> Result<String> {
+    #[derive(PartialEq, Eq)]
+    enum IndentChar {
+        Space,
+        Tab,
+    }
+
+    impl IndentChar {
+        fn as_char(&self) -> char {
+            match self {
+                IndentChar::Space => ' ',
+                IndentChar::Tab => '\t',
+            }
+        }
+    }
+
+    let mut min_indent_width = usize::MAX;
+    let mut indent_char: Option<IndentChar> = None;
+
+    for (line_number, line) in content.split('\n').enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let indents = line.chars().take_while(|c| matches!(c, '\t' | ' '));
+        let mut width = 0;
+
+        for c in indents {
+            let current_char = match c {
+                ' ' => IndentChar::Space,
+                '\t' => IndentChar::Tab,
+                _ => unreachable!(),
+            };
+
+            if let Some(expected_char) = indent_char.as_ref() {
+                if *expected_char != current_char {
+                    return Err(InjectorError::MixedIndentChar {
+                        line_number: line_number + 1,
+                    });
+                }
+            } else {
+                indent_char = Some(current_char);
+            }
+
+            width += 1;
+        }
+
+        min_indent_width = min_indent_width.min(width);
+    }
+
+    if min_indent_width == usize::MAX {
+        return Ok(content.to_owned());
+    }
+
+    let indent_char = indent_char.unwrap_or(IndentChar::Space).as_char();
+
+    let aligned = content
+        .split('\n')
+        .map(|line| {
+            if line.trim().is_empty() {
+                return line.to_owned();
+            }
+
+            let current_indent_width = line.chars().take_while(|c| matches!(c, ' ' | '\t')).count();
+            let new_indent_width = target_indent_width + (current_indent_width - min_indent_width);
+
+            let mut aligned_line = String::with_capacity(new_indent_width + line.len());
+            aligned_line.extend(std::iter::repeat_n(indent_char, new_indent_width));
+            aligned_line.push_str(&line[current_indent_width..]);
+            aligned_line
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    Ok(aligned)
 }
 
 #[cfg(test)]
