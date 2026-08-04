@@ -170,6 +170,7 @@ mod tests {
 
     use super::*;
     use crate::types::{BlockRole, MarkerBlock, MarkerConfig, SourceSpan};
+    use pretty_assertions::assert_eq;
 
     fn make_default_input_blocks(s: &str) -> Vec<MarkerBlock> {
         vec![MarkerBlock {
@@ -434,5 +435,207 @@ old third
         assert!(result.contains("old second"));
         assert!(!result.contains("old third"));
         assert_eq!(result.matches("new content").count(), 2);
+    }
+
+    #[test]
+    fn increases_minimum_indent_to_target() {
+        let content = r#"
+  first
+    second
+      third"#;
+
+        let result = align_indent(content, 4).unwrap();
+
+        let expected = r#"
+    first
+      second
+        third"#;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn decreases_minimum_indent_to_target() {
+        let content = r#"
+        first
+            second
+          third"#;
+
+        let result = align_indent(content, 2).unwrap();
+
+        let expected = r#"
+  first
+      second
+    third"#;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn keeps_content_unchanged_when_minimum_indent_equals_target() {
+        let content = r#"
+    first
+        second
+      third"#;
+        let result = align_indent(content, 4).unwrap();
+        assert_eq!(result, content);
+    }
+
+    #[test]
+    fn supports_zero_target_indent() {
+        let content = r#"
+    first
+        second
+      third"#;
+
+        let result = align_indent(content, 0).unwrap();
+
+        let expected = r#"
+first
+    second
+  third"#;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn adds_indent_when_content_has_no_initial_indent() {
+        let content = r#"
+first
+  second
+    third"#;
+
+        let result = align_indent(content, 4).unwrap();
+
+        let expected = r#"
+    first
+      second
+        third"#;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn preserves_relative_indent_between_lines() {
+        let content = r#"
+      first
+          second
+        third"#;
+
+        let result = align_indent(content, 3).unwrap();
+        let lines: Vec<&str> = result.lines().collect();
+        let widths: Vec<usize> = lines
+            .iter()
+            .map(|line| line.chars().take_while(|c| *c == ' ').count())
+            .collect();
+        assert_eq!(widths, vec![0, 3, 7, 5]);
+    }
+
+    #[test]
+    fn ignores_blank_lines_when_calculating_minimum_indent() {
+        let content = r#"
+    first
+
+        second"#;
+        let result = align_indent(content, 2).unwrap();
+        let expected = r#"
+  first
+
+      second"#;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn preserves_whitespace_only_lines() {
+        let content = "    first\n      \n        second";
+        let result = align_indent(content, 2).unwrap();
+        let expected = "  first\n      \n      second";
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn preserves_leading_and_trailing_blank_lines() {
+        let content = "\n    first\n        second\n";
+        let result = align_indent(content, 2).unwrap();
+        let expected = "\n  first\n      second\n";
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn returns_empty_string_for_empty_input() {
+        let result = align_indent("", 4).unwrap();
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn returns_whitespace_only_content_unchanged() {
+        let content = "   \n\t\n      ";
+        let result = align_indent(content, 4).unwrap();
+        assert_eq!(result, content);
+    }
+
+    #[test]
+    fn supports_tab_indentation() {
+        let content = "\
+\tfirst
+\t\tsecond
+\t\t\tthird";
+        let result = align_indent(content, 2).unwrap();
+        let expected = "\
+\t\tfirst
+\t\t\tsecond
+\t\t\t\tthird";
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn supports_zero_target_with_tab_indentation() {
+        let content = "\
+\t\tfirst
+\t\t\tsecond";
+        let result = align_indent(content, 0).unwrap();
+        let expected = "\
+first
+\tsecond";
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn rejects_mixed_spaces_and_tabs_on_same_line() {
+        let content = " \tfirst";
+        let error = align_indent(content, 4).unwrap_err();
+        assert!(matches!(
+            error,
+            InjectorError::MixedIndentChar { line_number: 1 }
+        ));
+    }
+
+    #[test]
+    fn rejects_mixed_indent_char_between_lines() {
+        let content = "    first\n\tsecond";
+        let error = align_indent(content, 4).unwrap_err();
+        assert!(matches!(
+            error,
+            InjectorError::MixedIndentChar { line_number: 2 }
+        ));
+    }
+
+    #[test]
+    fn reports_correct_line_number_after_blank_lines() {
+        let content = "    first\n\n\tsecond";
+        let error = align_indent(content, 4).unwrap_err();
+        assert!(matches!(
+            error,
+            InjectorError::MixedIndentChar { line_number: 3 }
+        ));
+    }
+
+    #[test]
+    fn preserves_windows_line_endings() {
+        let content = "    first\r\n        second\r\n";
+        let result = align_indent(content, 2).unwrap();
+        let expected = "  first\r\n      second\r\n";
+        assert_eq!(result, expected);
     }
 }
