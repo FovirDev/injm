@@ -638,4 +638,146 @@ first
         let expected = "  first\r\n      second\r\n";
         assert_eq!(result, expected);
     }
+
+    #[test]
+    fn keeps_content_without_blank_lines_unchanged() {
+        let content = "first\nsecond";
+
+        assert_eq!(trim_blank_lines(content), content);
+    }
+
+    #[test]
+    fn removes_leading_blank_lines() {
+        let content = "\n\nfirst\nsecond";
+
+        assert_eq!(trim_blank_lines(content), "first\nsecond");
+    }
+
+    #[test]
+    fn removes_leading_whitespace_only_lines() {
+        let content = "   \n\t\n  \t  \nfirst\nsecond";
+
+        assert_eq!(trim_blank_lines(content), "first\nsecond");
+    }
+
+    #[test]
+    fn removes_trailing_blank_lines() {
+        let content = "first\nsecond\n\n\n";
+
+        assert_eq!(trim_blank_lines(content), "first\nsecond");
+    }
+
+    #[test]
+    fn removes_trailing_whitespace_only_lines() {
+        let content = "first\nsecond\n   \n\t\n  ";
+
+        assert_eq!(trim_blank_lines(content), "first\nsecond");
+    }
+
+    #[test]
+    fn removes_leading_and_trailing_blank_lines() {
+        let content = "\n   \nfirst\nsecond\n\t\n\n";
+
+        assert_eq!(trim_blank_lines(content), "first\nsecond");
+    }
+
+    #[test]
+    fn preserves_blank_lines_inside_content() {
+        let content = "\nfirst\n\n   \nsecond\n\n";
+
+        assert_eq!(trim_blank_lines(content), "first\n\n   \nsecond");
+    }
+
+    #[test]
+    fn preserves_leading_indent_on_first_non_blank_line() {
+        let content = "\n\n    first\n        second\n";
+
+        assert_eq!(trim_blank_lines(content), "    first\n        second");
+    }
+
+    #[test]
+    fn preserves_trailing_spaces_on_last_content_line() {
+        let content = "first\nsecond   \t";
+
+        assert_eq!(trim_blank_lines(content), "first\nsecond   \t");
+    }
+
+    #[test]
+    fn preserves_trailing_spaces_before_blank_lines() {
+        let content = "first\nsecond   \t\n\n   \n";
+
+        assert_eq!(trim_blank_lines(content), "first\nsecond   \t");
+    }
+
+    #[test]
+    fn preserves_trailing_spaces_on_content_lines() {
+        let content = "\n  first  \n  second  \n\n";
+
+        assert_eq!(trim_blank_lines(content), "  first  \n  second  ");
+    }
+
+    #[test]
+    fn returns_empty_string_for_trim_empty_input() {
+        assert_eq!(trim_blank_lines(""), "");
+    }
+
+    #[test]
+    fn returns_empty_string_for_only_newlines() {
+        assert_eq!(trim_blank_lines("\n\n\n"), "");
+    }
+
+    #[test]
+    fn returns_empty_string_for_only_whitespace() {
+        assert_eq!(trim_blank_lines("   \n\t\n  \t "), "");
+    }
+
+    #[test]
+    fn supports_single_line_content() {
+        assert_eq!(trim_blank_lines("hello"), "hello");
+    }
+
+    #[test]
+    fn preserves_single_line_trailing_spaces() {
+        assert_eq!(trim_blank_lines("hello   \t"), "hello   \t");
+    }
+
+    #[test]
+    fn trims_single_line_surrounded_by_blank_lines() {
+        assert_eq!(trim_blank_lines("\n\nhello\n\n"), "hello");
+    }
+
+    #[test]
+    fn preserves_indent_on_non_blank_line() {
+        assert_eq!(trim_blank_lines("    hello"), "    hello");
+    }
+
+    #[test]
+    fn supports_windows_line_endings() {
+        let content = "\r\n  \r\nfirst\r\nsecond   \r\n\r\n";
+
+        assert_eq!(trim_blank_lines(content), "first\r\nsecond   ");
+    }
+
+    #[test]
+    fn supports_unicode_content() {
+        let content = "\n  \n    你好\n        世界   \n\n";
+
+        assert_eq!(trim_blank_lines(content), "    你好\n        世界   ");
+    }
+
+    #[test]
+    fn returned_value_is_a_slice_of_original_content() {
+        let content = "\n\nhello   \n\n";
+        let trimmed = trim_blank_lines(content);
+
+        assert_eq!(trimmed, "hello   ");
+
+        let content_start = content.as_ptr() as usize;
+        let content_end = content_start + content.len();
+        let trimmed_start = trimmed.as_ptr() as usize;
+        let trimmed_end = trimmed_start + trimmed.len();
+
+        assert!(trimmed_start >= content_start);
+        assert!(trimmed_end <= content_end);
+    }
 }
