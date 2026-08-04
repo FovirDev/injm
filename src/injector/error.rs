@@ -6,4 +6,7 @@ pub(crate) type Result<T> = std::result::Result<T, InjectorError>;
 pub(crate) enum InjectorError {
     #[error("empty input content")]
     EmptyInputContent,
+
+    #[error("invalid range: ({begin}, {end})")]
+    InvalidRange { begin: usize, end: usize },
 }

@@ -6,7 +6,7 @@ pub fn inject(
     output_blocks: &[MarkerBlock],
     input_blocks: &[MarkerBlock],
 ) -> Result<String> {
-    let mut lines: Vec<&str> = content.lines().collect();
+    let mut lines: Vec<String> = content.lines().map(str::to_owned).collect();
 
     // Use reversed iteration to avoid changes of line number.
     for block in output_blocks.iter().rev() {
@@ -14,7 +14,7 @@ pub fn inject(
             if input_block.content.is_empty() {
                 return Err(InjectorError::EmptyInputContent);
             }
-            lines = inject_into_a_block(&lines, block, &input_block.content);
+            lines = inject_into_a_block(&lines, block, &input_block.content)?;
         }
     }
 
@@ -26,12 +26,23 @@ pub fn inject(
     Ok(result)
 }
 
-fn inject_into_a_block<'a>(lines: &[&'a str], block: &MarkerBlock, stdin: &'a str) -> Vec<&'a str> {
-    // Content to be replaced is in (begin_line, end_line).
-    let before = &lines[block.span.before_lines()];
-    let after = &lines[block.span.after_lines()];
+fn inject_into_a_block(lines: &[String], block: &MarkerBlock, stdin: &str) -> Result<Vec<String>> {
+    let before_range = block.span.before_lines(block.config.offset);
+    let after_range = block.span.after_lines(block.config.offset);
 
-    let mut injected = Vec::new();
+    if before_range.end >= after_range.start {
+        // Convert to human-readable error messages.
+        return Err(InjectorError::InvalidRange {
+            begin: before_range.end + 1,
+            end: after_range.start + 1,
+        });
+    }
+
+    // Content to be replaced is in (before_range, aftger_range).
+    let before = &lines[before_range];
+    let after = &lines[after_range];
+
+    let mut injected = Vec::with_capacity(before.len() + after.len() + 1);
     injected.extend_from_slice(before);
     injected.push(stdin);
     injected.extend_from_slice(after);

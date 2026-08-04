@@ -50,11 +50,11 @@ impl SourceSpan {
         format!("{}-{}", self.begin_marker + 1, self.end_marker + 1)
     }
 
-    pub fn before_lines(&self) -> std::ops::RangeToInclusive<usize> {
-        ..=self.begin_marker
+    pub fn before_lines(&self, offset: usize) -> std::ops::RangeToInclusive<usize> {
+        ..=self.begin_marker + offset
     }
 
-    pub fn after_lines(&self) -> std::ops::RangeFrom<usize> {
-        self.end_marker..
+    pub fn after_lines(&self, offset: usize) -> std::ops::RangeFrom<usize> {
+        self.end_marker - offset..
     }
 }
