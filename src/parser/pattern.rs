@@ -9,9 +9,13 @@ use crate::{
 };
 use std::{
     collections::HashSet,
+    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
 };
+
+const IGNORED_DIRS: &[&str] = &[".git"];
+const IGNORED_FILES: &[&str] = &["LICENSE"];
 
 pub fn parse_patterns(
     includes: &[String],
@@ -46,7 +50,6 @@ fn pattern_set(
     opts: &PatternParserOption,
 ) -> Result<HashSet<PathBuf>> {
     let mut result: HashSet<PathBuf> = HashSet::new();
-    let mut no_pattern_match;
     let exclude_patterns: Vec<Pattern> = excludes
         .iter()
         .map(|e| Pattern::new(e))
@@ -59,17 +62,27 @@ fn pattern_set(
     };
 
     for pattern in patterns {
-        let pattern = if std::path::Path::new(pattern).is_dir() {
+        let input_path = Path::new(pattern);
+        let expanded_pattern = if input_path.is_dir() {
             format!("{}/**/*", pattern.trim_end_matches(['/', '\\']))
         } else {
-            pattern.to_string()
+            pattern.clone()
         };
 
-        no_pattern_match = true;
-        'outer: for entry in glob::glob(&pattern)? {
-            no_pattern_match = false;
-            let path = entry?;
+        let entries: Vec<PathBuf> = if input_path.is_dir() {
+            expand_directory(input_path)?
+        } else if let Some(root) = recursive_glob_root(pattern) {
+            if root.is_dir() {
+                expand_directory(root)?
+            } else {
+                Vec::new()
+            }
+        } else {
+            glob::glob(&expanded_pattern)?.collect::<std::result::Result<Vec<_>, _>>()?
+        };
 
+        let no_pattern_match = entries.is_empty();
+        'outer: for path in entries {
             if let Some(ref g) = gitignore
                 && g.matched_path_or_any_parents(&path, path.is_dir())
                     .is_ignore()
@@ -77,7 +90,7 @@ fn pattern_set(
                 continue;
             }
 
-            if path.is_dir() {
+            if path.is_dir() || is_ignored_file(&path) {
                 continue;
             }
 
@@ -91,7 +104,9 @@ fn pattern_set(
         }
 
         if no_pattern_match {
-            return Err(ParserError::NoPatternMatch { pattern });
+            return Err(ParserError::NoPatternMatch {
+                pattern: expanded_pattern,
+            });
         }
     }
 
@@ -110,6 +125,56 @@ fn load_gitignore(cwd: &Path) -> Result<Option<Gitignore>> {
     } else {
         Ok(None)
     }
+}
+
+fn expand_directory(root: &Path) -> Result<Vec<PathBuf>> {
+    let mut entries = Vec::new();
+    collect_directory_entries(root, &mut entries)?;
+    Ok(entries)
+}
+
+fn collect_directory_entries(dir: &Path, entries: &mut Vec<PathBuf>) -> Result<()> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_type = entry.file_type()?;
+
+        if file_type.is_dir() {
+            if is_ignored_dir(&path) {
+                continue;
+            }
+
+            entries.push(path.clone());
+            collect_directory_entries(&path, entries)?;
+        } else {
+            entries.push(path);
+        }
+    }
+
+    Ok(())
+}
+
+fn is_ignored_dir(path: &Path) -> bool {
+    path.file_name().is_some_and(|file_name| {
+        IGNORED_DIRS
+            .iter()
+            .any(|&ignored| file_name == OsStr::new(ignored))
+    })
+}
+
+fn is_ignored_file(path: &Path) -> bool {
+    path.file_name().is_some_and(|file_name| {
+        IGNORED_FILES
+            .iter()
+            .any(|&ignored| file_name == OsStr::new(ignored))
+    })
+}
+
+fn recursive_glob_root(pattern: &str) -> Option<&Path> {
+    pattern
+        .strip_suffix("/**/*")
+        .or_else(|| pattern.strip_suffix(r"\**\*"))
+        .map(Path::new)
 }
 
 #[cfg(test)]
@@ -322,6 +387,22 @@ mod tests {
         let result = pattern_set(&[include], &[x1, x2], &opts_with_cwd(dir.path())).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains(&keep_a));
+    }
+
+    #[test]
+    fn pattern_set_skips_git_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join(".git/objects")).unwrap();
+        std::fs::write(dir.path().join(".git/config"), "[core]\n").unwrap();
+        std::fs::write(dir.path().join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
+        std::fs::write(dir.path().join("keep.rs"), "").unwrap();
+        std::fs::write(dir.path().join("LICENSE"), "").unwrap();
+
+        let glob = dir.path().join("**/*").to_string_lossy().to_string();
+        let result = pattern_set(&[glob], &[], &opts_with_cwd(dir.path())).unwrap();
+        dbg!(&result);
+        assert_eq!(result.len(), 1);
+        assert!(result.contains(&dir.path().join("keep.rs")));
     }
 
     #[test]
