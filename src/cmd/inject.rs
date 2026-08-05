@@ -7,7 +7,7 @@ use crate::config::load_config;
 use crate::injector::inject;
 use crate::output::print_diff;
 use crate::parser::{PatternParserOption, parse_patterns};
-use crate::types::{BlockRole, MarkerBlock, SourceSpan};
+use crate::types::{BlockRole, MarkerBlock, MarkerConfig, SourceSpan};
 use crate::validator::{validate_duplicated_input_ids, validate_missing_ids};
 
 pub fn run(args: InjectArgs, global_args: GlobalArgs) -> Result<()> {
@@ -70,5 +70,6 @@ fn stdin_blocks(ids: Vec<Option<String>>) -> Result<Vec<MarkerBlock>> {
         span: SourceSpan::new(0, 0),
         role: BlockRole::Input { ids: input_ids },
         content: stdin,
+        config: MarkerConfig::default(),
     }])
 }

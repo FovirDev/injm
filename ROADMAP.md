@@ -149,9 +149,9 @@ injm
 
 Improve marker region configuration.
 
-- [ ] Provide offset option (default is `0`)
-- [ ] Support trim space option (default is `false`)
-- [ ] Allow the user to specify minimum indentation (default is `None`)
+- [x] Provide offset option (default is `0`)
+- [x] Support trim space option (default is `false`)
+- [x] Allow the user to specify minimum indentation (default is `None`)
 
 Example:
 

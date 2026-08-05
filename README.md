@@ -15,6 +15,7 @@ A CLI tool that injects content into marked regions in source files.
   - [Basic Injection](#basic-injection)
   - [Inject into a Specific Region](#inject-into-a-specific-region)
   - [Sync Between Files](#sync-between-files)
+  - [Marker Region Configuration](#marker-region-configuration)
   - [Multiple Files and Globs](#multiple-files-and-globs)
   - [Excluding Files](#excluding-files)
   - [`.gitignore` Integration](#gitignore-integration)
@@ -179,6 +180,79 @@ fn main() {
 A region may read from several sources by listing multiple `<id` markers.
 If a `>id` in the output has no matching `<id` in the input, `injm` reports
 the missing ID and exits with an error.
+
+### Marker Region Configuration
+
+Per-region options can be appended to the `injm begin` marker as `:option=value`
+tokens. They are set on the output region (the `>id` marker) and applied to
+whatever content is injected into it. Multiple options may be combined in any
+order:
+
+```rust
+// injm begin >id :offset=1 :trim=true :indent=4
+
+
+// injm end
+```
+
+**`:offset=N`** (default `0`) — extend the region being replaced by `N` lines beyond the markers on each side, so lines just inside the markers survive injection. Useful for wrapper lines:
+
+`dest.tex`
+
+```latex
+% injm begin >id :offset=1
+\begin{minted}{rust}
+\end{minted}
+% injm end
+```
+
+Only the content between `\begin{minted}` and `\end{minted}` is replaced; the wrapper lines are kept. An offset that exceeds the block's own content reports an error.
+
+**`:trim` / `:trim=true`** (default `false`) — remove leading and trailing blank lines from the injected content:
+
+```rust
+// injm begin >id :trim=true
+// injm end
+```
+
+**`:indent=N`** (default unset) — rebase the minimum indentation of the injected
+content to `N` columns, preserving the relative indentation of the other lines.
+The example below injects an 8-column-indented region at 4 columns instead:
+
+`src.rs`
+
+```rust
+fn main() {
+    if true {
+        // injm begin <id
+        if true {
+            println!("Hello world");
+        }
+        // injm end
+    }
+}
+```
+
+`dest.rs`
+
+```rust
+fn main() {
+    // injm begin >id :indent=4
+    // injm end
+}
+```
+
+Becomes:
+
+```rust
+fn main() {
+    // injm begin >id :indent=4
+    if true {
+        println!("Hello world");
+    }
+    // injm end
+}
+```
 
 ### Multiple Files and Globs
 

@@ -35,7 +35,7 @@ pub struct GlobalArgs {
     #[arg(short, long, global = true)]
     pub config: Option<PathBuf>,
 
-    #[arg(short, long, global = true)]
+    #[arg(short, long, global = true, num_args = 1..)]
     pub exclude: Vec<String>,
 
     #[arg(long, global = true)]
