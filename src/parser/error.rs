@@ -2,10 +2,10 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
-pub(crate) type Result<T> = std::result::Result<T, ParserError>;
+pub type Result<T> = std::result::Result<T, ParserError>;
 
 #[derive(Debug, Error)]
-pub(crate) enum ParserError {
+pub enum ParserError {
     #[error(transparent)]
     Process(#[from] tree_sitter_language_pack::Error),
 

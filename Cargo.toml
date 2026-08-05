@@ -25,9 +25,14 @@ tree-sitter-language-pack = "1.12.0"
 
 [dev-dependencies]
 assert_cmd = "2"
+criterion = "0.5"
 predicates = "3"
 tempfile = "3.27.0"
 pretty_assertions = "1"
+
+[[bench]]
+name = "injm_bench"
+harness = false
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }
