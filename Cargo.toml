@@ -30,6 +30,13 @@ predicates = "3"
 tempfile = "3.27.0"
 pretty_assertions = "1"
 
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
+
 [[bench]]
 name = "injm_bench"
 harness = false

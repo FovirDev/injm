@@ -225,4 +225,4 @@ fn main() {
 ## v1.0.0
 
 - [ ] Create GitHub actions
-- [ ] Optimize release binary
+- [x] Optimize release binary
