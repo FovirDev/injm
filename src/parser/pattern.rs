@@ -60,7 +60,7 @@ fn pattern_set(
 
     for pattern in patterns {
         let pattern = if std::path::Path::new(pattern).is_dir() {
-            format!("{}/**/*", pattern.trim_end_matches('/'))
+            format!("{}/**/*", pattern.trim_end_matches(['/', '\\']))
         } else {
             pattern.to_string()
         };
