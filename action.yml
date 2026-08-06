@@ -1,0 +1,95 @@
+name: "Setup injm"
+description: "Download and install injm CLI from GitHub Releases"
+author: "FovirDev"
+
+inputs:
+  version:
+    description: >
+      Version of injm to install, such as v1.0.0.
+      Use `latest` to install the latest release.
+    required: false
+    default: "latest"
+
+runs:
+  using: composite
+  steps:
+    - name: Install injm
+      shell: bash
+      env:
+        INJM_VERSION: ${{ inputs.version }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+
+        case "${RUNNER_OS}-${RUNNER_ARCH}" in
+          Linux-X64)
+            asset="injm-x86_64-unknown-linux-gnu"
+            executable="injm"
+            ;;
+
+          Linux-ARM64)
+            asset="injm-aarch64-unknown-linux-gnu"
+            executable="injm"
+            ;;
+
+          macOS-X64)
+            asset="injm-x86_64-apple-darwin"
+            executable="injm"
+            ;;
+
+          macOS-ARM64)
+            asset="injm-aarch64-apple-darwin"
+            executable="injm"
+            ;;
+
+          Windows-X64)
+            asset="injm-x86_64-pc-windows-msvc.exe"
+            executable="injm.exe"
+            ;;
+
+          *)
+            echo "::error::Unsupported platform: ${RUNNER_OS}-${RUNNER_ARCH}"
+            exit 1
+            ;;
+        esac
+
+        install_dir="${RUNNER_TEMP}/injm/bin"
+        install_path="${install_dir}/${executable}"
+
+        mkdir -p "${install_dir}"
+
+        if [[ "${INJM_VERSION}" == "latest" ]]; then
+          download_url="https://github.com/FovirDev/injm/releases/latest/download/${asset}"
+        else
+          download_url="https://github.com/FovirDev/injm/releases/download/${INJM_VERSION}/${asset}"
+        fi
+
+        echo "Downloading injm from:"
+        echo "${download_url}"
+
+        curl \
+          --fail \
+          --location \
+          --retry 3 \
+          --retry-delay 2 \
+          --silent \
+          --show-error \
+          --output "${install_path}" \
+          "${download_url}"
+
+        if [[ "${RUNNER_OS}" != "Windows" ]]; then
+          chmod +x "${install_path}"
+        fi
+
+        echo "${install_dir}" >> "${GITHUB_PATH}"
+
+        echo "Installed ${asset} as ${install_path}"
+
+    - name: Verify injm installation
+      shell: bash
+      run: |
+        injm --version
+
+branding:
+  icon: "download"
+  color: "purple"
