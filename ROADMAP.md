@@ -221,3 +221,8 @@ fn main() {
     // injm end
 }
 ```
+
+## v1.0.0
+
+- [ ] Create GitHub actions
+- [ ] Optimize release binary
