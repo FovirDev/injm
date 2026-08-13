@@ -45,7 +45,7 @@ pub fn run(args: ListArgs, global_args: GlobalArgs) -> Result<()> {
     // If the input is empty, then fallback to current directory (`.`)
     let input: Vec<String> = {
         let mut merged: Vec<String> = args
-            .input
+            .files
             .into_iter()
             .chain(cfg.input)
             .chain(cfg.output)
