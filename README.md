@@ -10,6 +10,7 @@ A CLI tool that injects content into marked regions in source files.
   - [Cargo](#cargo)
   - [Nix](#nix)
   - [Download Binary](#download-binary)
+  - [GitHub Action](#github-action)
 - [Usage](#usage)
   - [Quick Start](#quick-start)
   - [Basic Injection](#basic-injection)
@@ -48,6 +49,29 @@ nix profile install github:Fovir-GitHub/injm
 ### Download Binary
 
 Download the latest binary for your platform from [GitHub Releases](https://github.com/Fovir-GitHub/injm/releases/latest).
+
+### GitHub Action
+
+Use the [setup injm action](https://github.com/FovirDev/injm) to install `injm` in your GitHub Actions workflow:
+
+```yaml
+steps:
+  - uses: FovirDev/injm@v1
+    with:
+      version: latest # optional, defaults to `latest`; use a specific tag like `v1.0.0` to pin
+```
+
+The action downloads the injm binary for the current platform and adds it to `PATH`, so you can use it in subsequent steps:
+
+```yaml
+steps:
+  - uses: FovirDev/injm@v1
+
+  - name: Verify marker regions are in sync
+    run: injm check
+```
+
+It supports `ubuntu` (x64/arm64), `macOS` (x64/arm64) and `windows` (x64) runners.
 
 ## Usage
 
