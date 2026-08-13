@@ -9,6 +9,8 @@ A CLI tool that injects content into marked regions in source files.
 - [Installation](#installation)
   - [Cargo](#cargo)
   - [Nix](#nix)
+    - [Dev shell](#dev-shell)
+    - [Global (NixOS)](#global-nixos)
   - [Download Binary](#download-binary)
   - [GitHub Action](#github-action)
 - [Usage](#usage)
@@ -42,9 +44,65 @@ cargo install injm
 
 ### Nix
 
+Add `injm` as a flake input and install it declaratively in a dev shell or globally on NixOS:
+
+```nix
+# flake.nix of your project
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    injm.url = "github:FovirDev/injm";
+  };
+  # ...
+}
+```
+
+#### Dev shell
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    injm.url = "github:FovirDev/injm";
+  };
+
+  outputs = { self, nixpkgs, injm }:
+    let
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
+    in {
+      devShells.${system}.default = pkgs.mkShell {
+        packages = [ injm.packages.${system}.default ];
+      };
+    };
+}
+```
+
+Enter the shell with `nix develop`, or with `direnv`:
+
+```bash
+echo "use flake" >> .envrc && direnv allow
+```
+
+#### Global (NixOS)
+
+With `injm` in your flake inputs (see above), add it to `environment.systemPackages` in your `configuration.nix`:
+
+```nix
+{ inputs, pkgs, ... }: {
+  environment.systemPackages = [ inputs.injm.packages.${pkgs.system}.default ];
+}
+```
+
+Then apply with `sudo nixos-rebuild switch`.
+
+Alternatively, install imperatively with:
+
 ```bash
 nix profile install github:FovirDev/injm
 ```
+
+> Note: `injm` is not in the `nixpkgs` binary cache, so the first build compiles from source (needs network to fetch the tree-sitter parser bundle).
 
 ### Download Binary
 
