@@ -51,10 +51,10 @@ impl SourceSpan {
     }
 
     pub fn before_lines(&self, offset: usize) -> std::ops::RangeToInclusive<usize> {
-        ..=self.begin_marker + offset
+        ..=self.begin_marker.saturating_add(offset)
     }
 
     pub fn after_lines(&self, offset: usize) -> std::ops::RangeFrom<usize> {
-        self.end_marker - offset..
+        self.end_marker.saturating_sub(offset)..
     }
 }
