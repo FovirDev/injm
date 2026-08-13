@@ -539,6 +539,7 @@ MIT
 
 - [clap-rs/clap](https://github.com/clap-rs/clap): A full featured, fast Command Line Argument Parser for Rust.
 - [ignore](https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore): The ignore crate provides a fast recursive directory iterator that respects various filters such as globs, file types and .gitignore files. This crate also provides lower level direct access to gitignore and file type matchers.
+- [mitsuhiko/similar](https://github.com/mitsuhiko/similar): A high level diffing library for rust based on diffs
 - [rust-lang/glob](https://github.com/rust-lang/glob): Support for matching file paths against Unix shell style patterns.
 - [serde-rs/serde](https://github.com/serde-rs/serde): Serialization framework for Rust.
 - [xberg-io/tree-sitter-language-pack](https://github.com/xberg-io/tree-sitter-language-pack): Comprehensive tree-sitter grammar compilation with polyglot bindings — Rust, Python, Node.js, Go, Java, Ruby, Elixir, PHP, C#, WASM, Dart, Kotlin-Android, Swift, Zig, and CLI. 306+ languages.
