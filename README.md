@@ -43,12 +43,12 @@ cargo install injm
 ### Nix
 
 ```bash
-nix profile install github:Fovir-GitHub/injm
+nix profile install github:FovirDev/injm
 ```
 
 ### Download Binary
 
-Download the latest binary for your platform from [GitHub Releases](https://github.com/Fovir-GitHub/injm/releases/latest).
+Download the latest binary for your platform from [GitHub Releases](https://github.com/FovirDev/injm/releases/latest).
 
 ### GitHub Action
 

@@ -6,8 +6,8 @@ edition = "2024"
 license = "MIT"
 keywords = ["cli", "inject", "code", "marker"]
 categories = ["command-line-utilities", "development-tools"]
-repository = "https://github.com/Fovir-GitHub/injm"
-homepage = "https://github.com/Fovir-GitHub/injm"
+repository = "https://github.com/FovirDev/injm"
+homepage = "https://github.com/FovirDev/injm"
 readme = "README.md"
 
 [dependencies]
