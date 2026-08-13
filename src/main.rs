@@ -1,23 +1,14 @@
-mod checker;
-mod cli;
-mod cmd;
-mod config;
-mod injector;
-mod output;
-mod parser;
-mod types;
-mod validator;
-
 use clap::Parser;
+use injm::cli::{self, Cli};
 
 fn main() -> anyhow::Result<()> {
-    let cli = cli::Cli::parse();
+    let cli = Cli::parse();
     let global_args = cli.global_args;
 
     match cli.command {
-        Some(cli::Commands::Inject(args)) => cmd::inject::run(args, global_args),
-        Some(cli::Commands::List(args)) => cmd::list::run(args, global_args),
-        Some(cli::Commands::Check(args)) => cmd::check::run(args, global_args),
-        None => cmd::root::run(cli.root_args, global_args),
+        Some(cli::Commands::Inject(args)) => injm::cmd::inject::run(args, global_args),
+        Some(cli::Commands::List(args)) => injm::cmd::list::run(args, global_args),
+        Some(cli::Commands::Check(args)) => injm::cmd::check::run(args, global_args),
+        None => injm::cmd::root::run(cli.root_args, global_args),
     }
 }

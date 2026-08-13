@@ -6,8 +6,8 @@ edition = "2024"
 license = "MIT"
 keywords = ["cli", "inject", "code", "marker"]
 categories = ["command-line-utilities", "development-tools"]
-repository = "https://github.com/Fovir-GitHub/injm"
-homepage = "https://github.com/Fovir-GitHub/injm"
+repository = "https://github.com/FovirDev/injm"
+homepage = "https://github.com/FovirDev/injm"
 readme = "README.md"
 
 [dependencies]
@@ -25,9 +25,21 @@ tree-sitter-language-pack = "1.12.0"
 
 [dev-dependencies]
 assert_cmd = "2"
+criterion = "0.5"
 predicates = "3"
 tempfile = "3.27.0"
 pretty_assertions = "1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[[bench]]
+name = "injm_bench"
+harness = false
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }

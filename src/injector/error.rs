@@ -1,9 +1,9 @@
 use thiserror::Error;
 
-pub(crate) type Result<T> = std::result::Result<T, InjectorError>;
+pub type Result<T> = std::result::Result<T, InjectorError>;
 
 #[derive(Debug, Error)]
-pub(crate) enum InjectorError {
+pub enum InjectorError {
     #[error("empty input content")]
     EmptyInputContent,
 

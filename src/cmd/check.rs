@@ -46,7 +46,7 @@ pub fn run(args: CheckArgs, global_args: GlobalArgs) -> Result<()> {
 
     validate_duplicated_input_ids(input_blocks.iter().copied())?;
 
-    let issues = check_sync(&input_blocks, &files);
+    let issues = check_sync(&input_blocks, &files)?;
     if issues.is_empty() {
         println!("all marker blocks are synchronized");
         return Ok(());

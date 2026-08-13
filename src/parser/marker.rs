@@ -25,11 +25,7 @@ impl MarkerBlock {
     }
 }
 
-pub(crate) fn extract_marker_blocks(
-    content: &str,
-    path: &Path,
-    lang: &str,
-) -> Result<Vec<MarkerBlock>> {
+pub fn extract_marker_blocks(content: &str, path: &Path, lang: &str) -> Result<Vec<MarkerBlock>> {
     struct OpenBlock {
         begin_line: usize,
         role: BlockRole,

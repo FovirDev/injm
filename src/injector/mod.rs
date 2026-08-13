@@ -1,5 +1,5 @@
-pub(crate) mod error;
+pub mod error;
 mod inject;
 
-pub(crate) use error::*;
+pub use error::*;
 pub use inject::*;

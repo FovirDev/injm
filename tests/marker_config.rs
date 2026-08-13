@@ -1,6 +1,7 @@
 use std::io::Write;
 use std::{fs, path::Path, process::Command};
 
+use predicates::boolean::PredicateBooleanExt;
 use predicates::prelude::predicate;
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
@@ -29,6 +30,12 @@ fn inject_files(input: &Path, output: &Path) -> assert_cmd::Command {
     cmd
 }
 
+fn check_cmd() -> assert_cmd::Command {
+    let mut cmd = injm();
+    cmd.arg("check");
+    cmd
+}
+
 // ----- offset -----
 
 #[test]
@@ -37,12 +44,19 @@ fn offset_preserves_wrapper_lines() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\nhello\n// injm end\n",
+        r#"// injm begin <id
+hello
+// injm end
+"#,
     );
     write_file(
         temp.path(),
         "dest.rs",
-        "// injm begin >id :offset=1\nwrapper one\nwrapper two\n// injm end\n",
+        r#"// injm begin >id :offset=1
+wrapper one
+wrapper two
+// injm end
+"#,
     );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
@@ -52,7 +66,12 @@ fn offset_preserves_wrapper_lines() {
     let result = fs::read_to_string(temp.path().join("dest.rs")).unwrap();
     assert_eq!(
         result,
-        "// injm begin >id :offset=1\nwrapper one\nhello\nwrapper two\n// injm end\n"
+        r#"// injm begin >id :offset=1
+wrapper one
+hello
+wrapper two
+// injm end
+"#
     );
 }
 
@@ -62,12 +81,18 @@ fn offset_on_single_line_block_errors() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\nhello\n// injm end\n",
+        r#"// injm begin <id
+hello
+// injm end
+"#,
     );
     write_file(
         temp.path(),
         "dest.rs",
-        "// injm begin >id :offset=1\nonly line\n// injm end\n",
+        r#"// injm begin >id :offset=1
+only line
+// injm end
+"#,
     );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
@@ -82,12 +107,18 @@ fn offset_exceeds_block_lines_errors() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\nhello\n// injm end\n",
+        r#"// injm begin <id
+hello
+// injm end
+"#,
     );
     write_file(
         temp.path(),
         "dest.rs",
-        "// injm begin >id :offset=2\nonly line\n// injm end\n",
+        r#"// injm begin >id :offset=2
+only line
+// injm end
+"#,
     );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
@@ -102,17 +133,48 @@ fn offset_on_empty_block_errors() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\nhello\n// injm end\n",
+        r#"// injm begin <id
+hello
+// injm end
+"#,
     );
     write_file(
         temp.path(),
         "dest.rs",
-        "// injm begin >id :offset=1\n// injm end\n",
+        r#"// injm begin >id :offset=1
+// injm end
+"#,
     );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
         .assert()
         .failure();
+}
+
+#[test]
+fn offset_larger_than_end_marker_errors() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <id
+hello
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >id :offset=10
+only line
+// injm end
+"#,
+    );
+
+    inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("panicked").not());
 }
 
 // ----- trim -----
@@ -123,34 +185,19 @@ fn trim_removes_leading_and_trailing_blank_lines() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\n\nhello\n\n// injm end\n",
+        r#"// injm begin <id
+
+hello
+
+// injm end
+"#,
     );
     write_file(
         temp.path(),
         "dest.rs",
-        "// injm begin >id :trim=true\n// injm end\n",
-    );
-
-    inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
-        .assert()
-        .success();
-
-    let result = fs::read_to_string(temp.path().join("dest.rs")).unwrap();
-    assert_eq!(result, "// injm begin >id :trim=true\nhello\n// injm end\n");
-}
-
-#[test]
-fn trim_false_keeps_blank_lines() {
-    let temp = TempDir::new().unwrap();
-    write_file(
-        temp.path(),
-        "input.rs",
-        "// injm begin <id\n\nhello\n\n// injm end\n",
-    );
-    write_file(
-        temp.path(),
-        "dest.rs",
-        "// injm begin >id :trim=false\n// injm end\n",
+        r#"// injm begin >id :trim=true
+// injm end
+"#,
     );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
@@ -160,7 +207,47 @@ fn trim_false_keeps_blank_lines() {
     let result = fs::read_to_string(temp.path().join("dest.rs")).unwrap();
     assert_eq!(
         result,
-        "// injm begin >id :trim=false\n\nhello\n\n// injm end\n"
+        r#"// injm begin >id :trim=true
+hello
+// injm end
+"#
+    );
+}
+
+#[test]
+fn trim_false_keeps_blank_lines() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <id
+
+hello
+
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >id :trim=false
+// injm end
+"#,
+    );
+
+    inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
+        .assert()
+        .success();
+
+    let result = fs::read_to_string(temp.path().join("dest.rs")).unwrap();
+    assert_eq!(
+        result,
+        r#"// injm begin >id :trim=false
+
+hello
+
+// injm end
+"#
     );
 }
 
@@ -170,16 +257,35 @@ fn trim_default_keeps_blank_lines() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\n\nhello\n\n// injm end\n",
+        r#"// injm begin <id
+
+hello
+
+// injm end
+"#,
     );
-    write_file(temp.path(), "dest.rs", "// injm begin >id\n// injm end\n");
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >id
+// injm end
+"#,
+    );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
         .assert()
         .success();
 
     let result = fs::read_to_string(temp.path().join("dest.rs")).unwrap();
-    assert_eq!(result, "// injm begin >id\n\nhello\n\n// injm end\n");
+    assert_eq!(
+        result,
+        r#"// injm begin >id
+
+hello
+
+// injm end
+"#
+    );
 }
 
 #[test]
@@ -189,7 +295,9 @@ fn trim_with_stdin() {
     write_file(
         temp.path(),
         "dest.rs",
-        "// injm begin :trim=true\n// injm end\n",
+        r#"// injm begin :trim=true
+// injm end
+"#,
     );
 
     let mut child = Command::new(env!("CARGO_BIN_EXE_injm"))
@@ -204,12 +312,22 @@ fn trim_with_stdin() {
         .stdin
         .as_mut()
         .unwrap()
-        .write_all(b"\nhello\n")
+        .write_all(
+            br#"
+hello
+"#,
+        )
         .unwrap();
     assert!(child.wait().unwrap().success());
 
     let result = fs::read_to_string(&dest).unwrap();
-    assert_eq!(result, "// injm begin :trim=true\nhello\n// injm end\n");
+    assert_eq!(
+        result,
+        r#"// injm begin :trim=true
+hello
+// injm end
+"#
+    );
 }
 
 // ----- indent -----
@@ -220,12 +338,19 @@ fn indent_rebases_to_minimum() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\n        if true {\n            println!(\"Hello world\");\n        }\n// injm end\n",
+        r#"// injm begin <id
+        if true {
+            println!("Hello world");
+        }
+// injm end
+"#,
     );
     write_file(
         temp.path(),
         "dest.rs",
-        "// injm begin >id :indent=4\n// injm end\n",
+        r#"// injm begin >id :indent=4
+// injm end
+"#,
     );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
@@ -235,7 +360,12 @@ fn indent_rebases_to_minimum() {
     let result = fs::read_to_string(temp.path().join("dest.rs")).unwrap();
     assert_eq!(
         result,
-        "// injm begin >id :indent=4\n    if true {\n        println!(\"Hello world\");\n    }\n// injm end\n"
+        r#"// injm begin >id :indent=4
+    if true {
+        println!("Hello world");
+    }
+// injm end
+"#
     );
 }
 
@@ -245,9 +375,20 @@ fn indent_none_keeps_original() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\n        if true {\n            println!(\"Hello world\");\n        }\n// injm end\n",
+        r#"// injm begin <id
+        if true {
+            println!("Hello world");
+        }
+// injm end
+"#,
     );
-    write_file(temp.path(), "dest.rs", "// injm begin >id\n// injm end\n");
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >id
+// injm end
+"#,
+    );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
         .assert()
@@ -256,7 +397,12 @@ fn indent_none_keeps_original() {
     let result = fs::read_to_string(temp.path().join("dest.rs")).unwrap();
     assert_eq!(
         result,
-        "// injm begin >id\n        if true {\n            println!(\"Hello world\");\n        }\n// injm end\n"
+        r#"// injm begin >id
+        if true {
+            println!("Hello world");
+        }
+// injm end
+"#
     );
 }
 
@@ -266,12 +412,19 @@ fn indent_zero_dedents_to_column_zero() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\n        if true {\n            println!(\"Hello world\");\n        }\n// injm end\n",
+        r#"// injm begin <id
+        if true {
+            println!("Hello world");
+        }
+// injm end
+"#,
     );
     write_file(
         temp.path(),
         "dest.rs",
-        "// injm begin >id :indent=0\n// injm end\n",
+        r#"// injm begin >id :indent=0
+// injm end
+"#,
     );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
@@ -281,7 +434,12 @@ fn indent_zero_dedents_to_column_zero() {
     let result = fs::read_to_string(temp.path().join("dest.rs")).unwrap();
     assert_eq!(
         result,
-        "// injm begin >id :indent=0\nif true {\n    println!(\"Hello world\");\n}\n// injm end\n"
+        r#"// injm begin >id :indent=0
+if true {
+    println!("Hello world");
+}
+// injm end
+"#
     );
 }
 
@@ -291,12 +449,19 @@ fn indent_increases_shallow_content() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\n  a\n    b\n  c\n// injm end\n",
+        r#"// injm begin <id
+  a
+    b
+  c
+// injm end
+"#,
     );
     write_file(
         temp.path(),
         "dest.rs",
-        "// injm begin >id :indent=4\n// injm end\n",
+        r#"// injm begin >id :indent=4
+// injm end
+"#,
     );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
@@ -306,7 +471,12 @@ fn indent_increases_shallow_content() {
     let result = fs::read_to_string(temp.path().join("dest.rs")).unwrap();
     assert_eq!(
         result,
-        "// injm begin >id :indent=4\n    a\n      b\n    c\n// injm end\n"
+        r#"// injm begin >id :indent=4
+    a
+      b
+    c
+// injm end
+"#
     );
 }
 
@@ -360,9 +530,18 @@ fn options_on_input_marker_do_not_break() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id :trim=true\nhello\n// injm end\n",
+        r#"// injm begin <id :trim=true
+hello
+// injm end
+"#,
     );
-    write_file(temp.path(), "dest.rs", "// injm begin >id\n// injm end\n");
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >id
+// injm end
+"#,
+    );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
         .assert()
@@ -380,15 +559,343 @@ fn invalid_option_errors() {
     write_file(
         temp.path(),
         "input.rs",
-        "// injm begin <id\nhello\n// injm end\n",
+        r#"// injm begin <id
+hello
+// injm end
+"#,
     );
     write_file(
         temp.path(),
         "dest.rs",
-        "// injm begin >id :unknown=1\n// injm end\n",
+        r#"// injm begin >id :unknown=1
+// injm end
+"#,
     );
 
     inject_files(&temp.path().join("input.rs"), &temp.path().join("dest.rs"))
         .assert()
         .failure();
+}
+
+// ----- list -----
+
+#[test]
+fn list_with_config_options_runs() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >id :trim=true :offset=1 :indent=4
+wrapper
+// injm end
+"#,
+    );
+
+    let mut cmd = injm();
+    cmd.arg("list").arg(temp.path().join("dest.rs"));
+    cmd.assert()
+        .success()
+        .stdout(predicates::str::contains("id"));
+}
+
+#[test]
+fn list_json_with_config_options_runs() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >id :trim=true
+hello
+// injm end
+"#,
+    );
+
+    let mut cmd = injm();
+    cmd.arg("list")
+        .arg("--format")
+        .arg("json")
+        .arg(temp.path().join("dest.rs"));
+    cmd.assert()
+        .success()
+        .stdout(predicates::str::contains("\"id\": \"id\""));
+}
+
+// ----- check -----
+
+#[test]
+fn check_trim_considers_config() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <msg
+
+hello
+
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >msg :trim=true
+hello
+// injm end
+"#,
+    );
+
+    check_cmd()
+        .arg(temp.path().join("input.rs"))
+        .arg(temp.path().join("dest.rs"))
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("synchronized"));
+}
+
+#[test]
+fn check_trim_out_of_sync() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <msg
+
+hello
+
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >msg :trim=true
+
+hello
+
+// injm end
+"#,
+    );
+
+    check_cmd()
+        .arg(temp.path().join("input.rs"))
+        .arg(temp.path().join("dest.rs"))
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("out of sync"));
+}
+
+#[test]
+fn check_offset_considers_config() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <msg
+hello
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >msg :offset=1
+wrapper one
+hello
+wrapper two
+// injm end
+"#,
+    );
+
+    check_cmd()
+        .arg(temp.path().join("input.rs"))
+        .arg(temp.path().join("dest.rs"))
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("synchronized"));
+}
+
+#[test]
+fn check_offset_out_of_sync() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <msg
+hello
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >msg :offset=1
+wrapper one
+hello
+world
+wrapper two
+// injm end
+"#,
+    );
+
+    check_cmd()
+        .arg(temp.path().join("input.rs"))
+        .arg(temp.path().join("dest.rs"))
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("out of sync"));
+}
+
+#[test]
+fn check_offset_invalid_range() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <msg
+hello
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >msg :offset=1
+hello
+// injm end
+"#,
+    );
+
+    check_cmd()
+        .arg(temp.path().join("input.rs"))
+        .arg(temp.path().join("dest.rs"))
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("invalid range"));
+}
+
+#[test]
+fn check_offset_larger_than_end_marker_errors() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <msg
+hello
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >msg :offset=10
+only line
+// injm end
+"#,
+    );
+
+    check_cmd()
+        .arg(temp.path().join("input.rs"))
+        .arg(temp.path().join("dest.rs"))
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("panicked").not());
+}
+
+#[test]
+fn check_indent_considers_config() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <msg
+        if true {
+            println!("Hello world");
+        }
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >msg :indent=4
+    if true {
+        println!("Hello world");
+    }
+// injm end
+"#,
+    );
+
+    check_cmd()
+        .arg(temp.path().join("input.rs"))
+        .arg(temp.path().join("dest.rs"))
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("synchronized"));
+}
+
+#[test]
+fn check_indent_out_of_sync() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <msg
+        if true {
+            println!("Hello world");
+        }
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >msg :indent=4
+        if true {
+            println!("Hello world");
+        }
+// injm end
+"#,
+    );
+
+    check_cmd()
+        .arg(temp.path().join("input.rs"))
+        .arg(temp.path().join("dest.rs"))
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("out of sync"));
+}
+
+#[test]
+fn check_combined_considers_config() {
+    let temp = TempDir::new().unwrap();
+    write_file(
+        temp.path(),
+        "input.rs",
+        r#"// injm begin <msg
+
+        if true {
+            x();
+        }
+// injm end
+"#,
+    );
+    write_file(
+        temp.path(),
+        "dest.rs",
+        r#"// injm begin >msg :offset=1 :trim=true :indent=4
+wrapper one
+    if true {
+        x();
+    }
+wrapper two
+// injm end
+"#,
+    );
+
+    check_cmd()
+        .arg(temp.path().join("input.rs"))
+        .arg(temp.path().join("dest.rs"))
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("synchronized"));
 }
