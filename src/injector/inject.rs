@@ -26,7 +26,11 @@ pub fn inject(
     Ok(result)
 }
 
-fn inject_into_a_block(lines: &[String], block: &MarkerBlock, stdin: &str) -> Result<Vec<String>> {
+pub fn inject_into_a_block(
+    lines: &[String],
+    block: &MarkerBlock,
+    stdin: &str,
+) -> Result<Vec<String>> {
     let before_range = block.span.before_lines(block.config.offset);
     let after_range = block.span.after_lines(block.config.offset);
 
