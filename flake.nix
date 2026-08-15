@@ -47,6 +47,9 @@
             rustfmt
             vhs
           ];
+          shellHook = ''
+            export PATH="target/debug:$PATH"
+          '';
         };
       }
     );
