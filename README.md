@@ -2,6 +2,8 @@
 
 A CLI tool that injects content into marked regions in source files.
 
+![demo](./demo/assets/injm.gif)
+
 ## Table of Contents
 
 <!-- toc -->
