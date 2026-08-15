@@ -45,6 +45,7 @@
             rust-analyzer
             rustc
             rustfmt
+            vhs
           ];
         };
       }
