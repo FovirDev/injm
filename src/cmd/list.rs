@@ -1,4 +1,5 @@
 use crate::cli::{GlobalArgs, ListArgs};
+use crate::cmd::merged_with_fallback;
 use crate::config::load_config;
 use crate::output::print;
 use crate::parser::{PatternParserOption, parse_patterns};
@@ -43,19 +44,7 @@ pub fn run(args: ListArgs, global_args: GlobalArgs) -> Result<()> {
     let cfg = load_config(global_args.config)?;
 
     // If the input is empty, then fallback to current directory (`.`)
-    let input: Vec<String> = {
-        let mut merged: Vec<String> = args
-            .files
-            .into_iter()
-            .chain(cfg.input)
-            .chain(cfg.output)
-            .collect();
-        if merged.is_empty() {
-            merged.push(".".to_string());
-        }
-        merged
-    };
-
+    let input = merged_with_fallback(args.files, cfg.input, cfg.output);
     let excludes: Vec<String> = cfg.exclude.into_iter().chain(global_args.exclude).collect();
 
     // Get all input and output blocks.

@@ -1,6 +1,7 @@
 use crate::{
     checker::check_sync,
     cli::{CheckArgs, GlobalArgs},
+    cmd::merged_with_fallback,
     config::load_config,
     output::print_block_diff,
     parser::{PatternParserOption, parse_patterns},
@@ -12,19 +13,7 @@ use anyhow::{Result, bail};
 pub fn run(args: CheckArgs, global_args: GlobalArgs) -> Result<()> {
     let cfg = load_config(global_args.config)?;
 
-    let includes: Vec<String> = {
-        let mut merged: Vec<String> = args
-            .files
-            .into_iter()
-            .chain(cfg.input)
-            .chain(cfg.output)
-            .collect();
-        if merged.is_empty() {
-            merged.push(".".to_string());
-        }
-        merged
-    };
-
+    let includes = merged_with_fallback(args.files, cfg.input, cfg.output);
     let excludes: Vec<String> = cfg.exclude.into_iter().chain(global_args.exclude).collect();
 
     let files = parse_patterns(
