@@ -83,7 +83,7 @@ fn pattern_set(
                 continue;
             }
 
-            if path.is_dir() || is_ignored_file(&path) {
+            if path.is_dir() || is_ignored(&path, IGNORED_FILES) {
                 continue;
             }
 
@@ -125,7 +125,7 @@ fn collect_directory_entries(dir: &Path, entries: &mut Vec<PathBuf>) -> Result<(
         let file_type = entry.file_type()?;
 
         if file_type.is_dir() {
-            if is_ignored_dir(&path) {
+            if is_ignored(&path, IGNORED_DIRS) {
                 continue;
             }
 
@@ -139,17 +139,9 @@ fn collect_directory_entries(dir: &Path, entries: &mut Vec<PathBuf>) -> Result<(
     Ok(())
 }
 
-fn is_ignored_dir(path: &Path) -> bool {
+fn is_ignored(path: &Path, names: &[&str]) -> bool {
     path.file_name().is_some_and(|file_name| {
-        IGNORED_DIRS
-            .iter()
-            .any(|&ignored| file_name == OsStr::new(ignored))
-    })
-}
-
-fn is_ignored_file(path: &Path) -> bool {
-    path.file_name().is_some_and(|file_name| {
-        IGNORED_FILES
+        names
             .iter()
             .any(|&ignored| file_name == OsStr::new(ignored))
     })
