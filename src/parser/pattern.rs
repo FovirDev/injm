@@ -404,7 +404,6 @@ mod tests {
 
         let glob = dir.path().join("**/*").to_string_lossy().to_string();
         let result = pattern_set(&[glob], &[], &opts_with_cwd(dir.path())).unwrap();
-        dbg!(&result);
         assert_eq!(result.len(), 1);
         assert!(result.contains(&dir.path().join("keep.rs")));
     }
