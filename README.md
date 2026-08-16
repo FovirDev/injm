@@ -413,7 +413,7 @@ This reads the config, injects content from `input` into matching regions in
 `output`, and writes the result. Equivalent to:
 
 ```bash
-injm inject --input "examples/*.md" --output "docs/**" --exclude "target/**" --exclude "vendor/**"
+injm inject --input "examples/*.md" --output "docs/**" --exclude "target/**" "vendor/**"
 ```
 
 You can also point to a different config file with `--config`:
