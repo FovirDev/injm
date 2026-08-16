@@ -91,14 +91,15 @@ pub fn extract_marker_blocks(content: &str, path: &Path, lang: &str) -> Result<V
 }
 
 fn extract_role(comment: &str) -> Result<BlockRole> {
-    let input_tokens: Vec<&str> = comment
-        .split_whitespace()
-        .filter(|t| t.starts_with('<'))
-        .collect();
-    let output_tokens: Vec<&str> = comment
-        .split_whitespace()
-        .filter(|t| t.starts_with('>'))
-        .collect();
+    let tokens = |prefix: char| {
+        comment
+            .split_whitespace()
+            .filter(|t| t.starts_with(prefix))
+            .collect::<Vec<_>>()
+    };
+
+    let input_tokens: Vec<&str> = tokens('<');
+    let output_tokens: Vec<&str> = tokens('>');
 
     if input_tokens.is_empty() == output_tokens.is_empty() {
         if input_tokens.is_empty() {
