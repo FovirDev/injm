@@ -33,23 +33,19 @@ pub fn print_diff(path: &Path, original: &str, replaced: &str) {
     let old_path = format!("a/{}", path.display());
     let new_path = format!("b/{}", path.display());
 
-    println!(
-        "{}",
-        TextDiff::from_lines(original, replaced)
-            .unified_diff()
-            .header(&old_path, &new_path)
-    );
+    println!("{}", unified_diff(original, replaced, &old_path, &new_path));
 }
 
 pub fn print_block_diff(path: &Path, lines: &str, id: &str, actual: &str, expected: &str) {
     let old_path = format!("{}:{}:{}:actual", path.display(), lines, id,);
-
     let new_path = format!("{}:{}:{}:expected", path.display(), lines, id,);
 
-    print!(
-        "{}",
-        TextDiff::from_lines(actual, expected)
-            .unified_diff()
-            .header(&old_path, &new_path)
-    );
+    print!("{}", unified_diff(actual, expected, &old_path, &new_path));
+}
+
+fn unified_diff(old: &str, new: &str, old_path: &str, new_path: &str) -> String {
+    TextDiff::from_lines(old, new)
+        .unified_diff()
+        .header(old_path, new_path)
+        .to_string()
 }
