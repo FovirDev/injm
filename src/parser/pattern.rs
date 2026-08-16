@@ -70,7 +70,7 @@ fn pattern_set(
         };
 
         let no_pattern_match = entries.is_empty();
-        'outer: for path in entries {
+        for path in entries {
             if let Some(ref g) = gitignore
                 && g.matched_path_or_any_parents(&path, path.is_dir())
                     .is_ignore()
@@ -82,10 +82,8 @@ fn pattern_set(
                 continue;
             }
 
-            for exclude in &exclude_patterns {
-                if exclude.matches_path(&path) {
-                    continue 'outer;
-                }
+            if exclude_patterns.iter().any(|e| e.matches_path(&path)) {
+                continue;
             }
 
             result.insert(path);
