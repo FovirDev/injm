@@ -52,7 +52,7 @@ fn pattern_set(
     let mut result: HashSet<PathBuf> = HashSet::new();
     let exclude_patterns: Vec<Pattern> = excludes
         .iter()
-        .map(|e| Pattern::new(e))
+        .map(|e| Pattern::new(&recursive_pattern_str(e)))
         .collect::<std::result::Result<Vec<_>, _>>()?;
 
     let gitignore = if opts.no_gitignore {
@@ -62,23 +62,11 @@ fn pattern_set(
     };
 
     for pattern in patterns {
-        let input_path = Path::new(pattern);
-        let expanded_pattern = if input_path.is_dir() {
-            format!("{}/**/*", pattern.trim_end_matches(['/', '\\']))
-        } else {
-            pattern.clone()
-        };
+        let expanded_pattern = recursive_pattern_str(pattern);
 
-        let entries: Vec<PathBuf> = if input_path.is_dir() {
-            expand_directory(input_path)?
-        } else if let Some(root) = recursive_glob_root(pattern) {
-            if root.is_dir() {
-                expand_directory(root)?
-            } else {
-                Vec::new()
-            }
-        } else {
-            glob::glob(&expanded_pattern)?.collect::<std::result::Result<Vec<_>, _>>()?
+        let entries: Vec<PathBuf> = match recursive_glob_root(&expanded_pattern) {
+            Some(root) if root.is_dir() => expand_directory(root)?,
+            _ => glob::glob(&expanded_pattern)?.collect::<std::result::Result<Vec<_>, _>>()?,
         };
 
         let no_pattern_match = entries.is_empty();
@@ -175,6 +163,14 @@ fn recursive_glob_root(pattern: &str) -> Option<&Path> {
         .strip_suffix("/**/*")
         .or_else(|| pattern.strip_suffix(r"\**\*"))
         .map(Path::new)
+}
+
+fn recursive_pattern_str(pattern: &str) -> String {
+    if Path::new(pattern).is_dir() {
+        format!("{}/**/*", pattern.trim_end_matches(['/', '\\']))
+    } else {
+        pattern.to_owned()
+    }
 }
 
 #[cfg(test)]
@@ -352,6 +348,25 @@ mod tests {
         let include_glob = dir.path().join("*.*").to_string_lossy().to_string();
         let result =
             pattern_set(&[include_glob], &[exclude_glob], &opts_with_cwd(dir.path())).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(result.contains(&kept));
+    }
+
+    #[test]
+    fn pattern_set_exclude_directory_recursively() {
+        let dir = tempfile::tempdir().unwrap();
+        let kept = dir.path().join("keep.rs");
+        let skipped = dir.path().join("sub/a.rs");
+        let skipped_nested = dir.path().join("sub/nested/b.rs");
+        std::fs::create_dir_all(dir.path().join("sub/nested")).unwrap();
+        std::fs::write(&kept, "").unwrap();
+        std::fs::write(&skipped, "").unwrap();
+        std::fs::write(&skipped_nested, "").unwrap();
+
+        let include_glob = dir.path().join("**/*").to_string_lossy().to_string();
+        let exclude_dir = dir.path().join("sub").to_string_lossy().to_string();
+        let result =
+            pattern_set(&[include_glob], &[exclude_dir], &opts_with_cwd(dir.path())).unwrap();
         assert_eq!(result.len(), 1);
         assert!(result.contains(&kept));
     }
