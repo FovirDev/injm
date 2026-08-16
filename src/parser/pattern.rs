@@ -69,7 +69,12 @@ fn pattern_set(
             _ => glob::glob(&expanded_pattern)?.collect::<std::result::Result<Vec<_>, _>>()?,
         };
 
-        let no_pattern_match = entries.is_empty();
+        if entries.is_empty() {
+            return Err(ParserError::NoPatternMatch {
+                pattern: expanded_pattern,
+            });
+        }
+
         for path in entries {
             if let Some(ref g) = gitignore
                 && g.matched_path_or_any_parents(&path, path.is_dir())
@@ -87,12 +92,6 @@ fn pattern_set(
             }
 
             result.insert(path);
-        }
-
-        if no_pattern_match {
-            return Err(ParserError::NoPatternMatch {
-                pattern: expanded_pattern,
-            });
         }
     }
 
