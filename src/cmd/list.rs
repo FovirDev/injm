@@ -3,10 +3,11 @@ use crate::cmd::merged_with_fallback;
 use crate::config::load_config;
 use crate::output::print;
 use crate::parser::{PatternParserOption, parse_patterns};
-use crate::types::BlockRole;
+use crate::types::{BlockRole, SourceSpan};
 use anyhow::Result;
 use core::fmt;
 use serde::Serialize;
+use std::path::Path;
 use tabled::Tabled;
 
 #[derive(Serialize, Tabled)]
@@ -63,22 +64,12 @@ pub fn run(args: ListArgs, global_args: GlobalArgs) -> Result<()> {
             match &block.role {
                 BlockRole::Input { ids, .. } => {
                     for id in ids {
-                        rows.push(MarkerInfo {
-                            file: file.path.display().to_string(),
-                            marker_type: MarkerType::Input,
-                            id: id.clone(),
-                            lines: block.span.display_lines(),
-                        });
+                        push_row(&mut rows, &file.path, MarkerType::Input, id, &block.span);
                     }
                 }
                 BlockRole::Output { id } => {
                     if let Some(id) = id {
-                        rows.push(MarkerInfo {
-                            file: file.path.display().to_string(),
-                            marker_type: MarkerType::Output,
-                            id: id.clone(),
-                            lines: block.span.display_lines(),
-                        });
+                        push_row(&mut rows, &file.path, MarkerType::Output, id, &block.span);
                     }
                 }
             }
@@ -90,4 +81,19 @@ pub fn run(args: ListArgs, global_args: GlobalArgs) -> Result<()> {
     print(&rows, args.format)?;
 
     Ok(())
+}
+
+fn push_row(
+    rows: &mut Vec<MarkerInfo>,
+    file: &Path,
+    marker_type: MarkerType,
+    id: &str,
+    span: &SourceSpan,
+) {
+    rows.push(MarkerInfo {
+        file: file.display().to_string(),
+        marker_type,
+        id: id.to_string(),
+        lines: span.display_lines(),
+    });
 }
